@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inwentarz Warsztatu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg: #0f1611;
+    --bg-alt: #131c15;
+    --panel: #182219;
+    --panel-2: #1e2b1f;
+    --line: #2a3a2b;
+    --copper: #c97a46;
+    --copper-bright: #e6a86e;
+    --cream: #ede6d6;
+    --muted: #8a9488;
+    --muted-2: #5f6b60;
+    --danger: #c1553d;
+    --danger-bright: #e07456;
+    --success: #6fa97e;
+    --verdigris: #3f7d64;
+    --verdigris-bright: #57a184;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 1px 1px, rgba(201,122,70,0.07) 1px, transparent 0);
+    background-size: 28px 28px;
+    color: var(--cream);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 28px 20px 60px;
+  }
+  .wrap{ max-width: 1180px; margin: 0 auto; }
+
+  .eyebrow{
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em;
+    color: var(--copper); text-transform: uppercase;
+    display:flex; align-items:center; gap:10px; margin-bottom: 6px;
+  }
+  .eyebrow::before{ content:""; width:7px; height:7px; border-radius:50%; background: var(--copper); box-shadow: 0 0 8px 1px var(--copper); }
+  h1{ font-family: var(--font-display); font-weight:700; font-size: clamp(28px, 4vw, 40px); margin: 0 0 4px; letter-spacing: -0.01em; }
+  .subtitle{ color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+
+  .trace{
+    height: 2px;
+    background: repeating-linear-gradient(90deg, var(--line) 0, var(--line) 6px, transparent 6px, transparent 11px);
+    position: relative; margin: 18px 0 26px;
+  }
+  .trace::before, .trace::after{ content:""; position:absolute; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%; background: var(--copper); }
+  .trace::before{ left:0; } .trace::after{ right:0; }
+
+  .stats{ display:grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:26px; }
+  .stat{ background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .stat .num{ font-family: var(--font-mono); font-size: 24px; font-weight:600; color: var(--copper-bright); }
+  .stat .lbl{ font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top:2px; }
+
+  .panel{ background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 22px; }
+  .panel h2{ font-family: var(--font-display); font-size: 15px; margin:0 0 14px; color: var(--cream); text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:10px; }
+  .panel h2 .sub{ font-family: var(--font-body); font-size:12px; color: var(--muted); text-transform:none; letter-spacing:normal; font-weight:400; }
+
+  .grid-form{ display:grid; grid-template-columns: 1.4fr 1fr 0.7fr 1fr 1fr; gap: 12px; align-items:end; }
+  @media (max-width: 900px){ .grid-form{ grid-template-columns: 1fr 1fr; } }
+  .field label{ display:block; font-size: 11px; color: var(--muted); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .field input, .field select{
+    width:100%; background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 11px; color: var(--cream); font-family: var(--font-body); font-size: 14px; outline:none; transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus{ border-color: var(--copper); }
+  .field input::placeholder{ color: var(--muted-2); }
+  .field-notes{ grid-column: 1 / -1; }
+
+  /* colored category select */
+  .cat-field{ position:relative; }
+  .cat-field select{ padding-left: 28px; appearance:none; -webkit-appearance:none; cursor:pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a9488'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .cat-dot{ position:absolute; left:11px; top:50%; transform:translateY(-50%); width:9px; height:9px; border-radius:3px; background:#8a9488; pointer-events:none; z-index:2; }
+
+  .btn{ font-family: var(--font-body); font-weight:600; font-size: 13.5px; border-radius: 8px; padding: 10px 16px; border: 1px solid transparent; cursor:pointer; transition: all .15s; }
+  .btn-primary{ background: var(--copper); color:#1a1006; }
+  .btn-primary:hover{ background: var(--copper-bright); }
+  .btn-ghost{ background:transparent; border-color: var(--line); color: var(--cream); }
+  .btn-ghost:hover{ border-color: var(--copper); color: var(--copper-bright); }
+  .btn-danger{ background: transparent; border-color: var(--danger); color: var(--danger-bright); }
+  .btn-danger:hover{ background: rgba(193,85,61,0.12); }
+  .btn-row{ margin-top: 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  .toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom: 14px; }
+  .search{ flex:1; min-width: 180px; }
+  .search input{ width:100%; background: var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; color:var(--cream); font-size:14px; outline:none; }
+  .search input:focus{ border-color: var(--copper); }
+  .cat-field.cat-filter{ min-width: 220px; }
+  .cat-field.cat-filter select{ background-color: var(--panel); }
+
+  .table-wrap{ background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; overflow-x:auto; }
+  table{ width:100%; border-collapse: collapse; min-width: 640px; }
+  thead th{
+    text-align:left; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2);
+    cursor: pointer; user-select:none; white-space:nowrap;
+  }
+  thead th:hover{ color: var(--copper-bright); }
+  thead th.nosort{ cursor:default; }
+  thead th.nosort:hover{ color: var(--muted); }
+  thead th .arrow{ opacity:0.5; margin-left:4px; }
+  tbody td{ padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background: rgba(201,122,70,0.05); }
+  tbody tr.bought td{ opacity:0.5; }
+  tbody tr.bought .item-name{ text-decoration: line-through; }
+  .item-name{ font-weight:600; color: var(--cream); }
+  .item-loc{ font-size:12px; color: var(--muted); margin-top:2px; }
+  .val-mono{ font-family: var(--font-mono); color: var(--copper-bright); font-size: 13.5px; }
+  .qty{ font-family: var(--font-mono); font-weight:600; }
+  .badge{ display:inline-block; font-family: var(--font-mono); font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid; white-space:nowrap; }
+  .pkg{ font-family: var(--font-mono); font-size:12.5px; color: var(--muted); }
+  .row-actions{ display:flex; gap:6px; }
+  .icon-btn{ background:transparent; border:1px solid var(--line); border-radius:6px; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color: var(--muted); transition: all .12s; }
+  .icon-btn:hover{ border-color: var(--copper); color: var(--copper-bright); }
+  .icon-btn.del:hover{ border-color: var(--danger); color: var(--danger-bright); }
+  .tme-link{ font-family: var(--font-mono); font-size: 12px; color: var(--copper); text-decoration:none; border-bottom: 1px dashed var(--copper); white-space:nowrap; }
+  .tme-link:hover{ color: var(--copper-bright); }
+  .stock-hint{ font-size:11.5px; color: var(--muted); margin-top:2px; }
+  .checkbox{ width:18px; height:18px; accent-color: var(--copper); cursor:pointer; }
+
+  .empty{ padding: 50px 20px; text-align:center; color: var(--muted); }
+  .empty .big{ font-family: var(--font-display); font-size: 18px; color: var(--cream); margin-bottom:6px; }
+  .loading-state{ padding: 40px; text-align:center; color: var(--muted); font-family: var(--font-mono); font-size:13px; }
+
+  .toast{
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2); border:1px solid var(--copper); color: var(--cream);
+    padding: 11px 18px; border-radius: 10px; font-size: 13.5px; opacity:0; pointer-events:none;
+    transition: all .25s; font-family: var(--font-mono); z-index: 50;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar{ height:8px; width:8px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
+
+  .hint{ font-size:12px; color: var(--muted-2); margin-top:4px; }
+
+  .storage-bar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 18px; font-family: var(--font-mono); font-size: 12.5px; color: var(--muted);
+  }
+  .storage-bar .dot{ width:7px; height:7px; border-radius:50%; background: var(--muted-2); flex-shrink:0; }
+  .storage-bar .dot.ok{ background: var(--success); box-shadow: 0 0 6px 1px var(--success); }
+  .storage-bar .dot.warn{ background: var(--copper); box-shadow: 0 0 6px 1px var(--copper); }
+  .storage-bar .filename{ color: var(--cream); }
+  .storage-bar .sp{ flex:1; }
+  .btn-mini{ font-family: var(--font-mono); font-size: 11.5px; font-weight:600; border-radius: 6px; padding: 6px 11px; border: 1px solid var(--copper); background: transparent; color: var(--copper-bright); cursor:pointer; }
+  .btn-mini:hover{ background: rgba(201,122,70,0.12); }
+
+  .mode-toggle{ display:flex; gap:6px; margin-bottom: 14px; }
+  .mode-btn{
+    font-family: var(--font-mono); font-size:12px; padding:7px 13px; border-radius:7px;
+    border:1px solid var(--line); background: var(--bg-alt); color: var(--muted); cursor:pointer;
+  }
+  .mode-btn.active{ border-color: var(--copper); color: var(--copper-bright); background: rgba(201,122,70,0.1); }
+
+  .info-note{
+    font-size:12.5px; color: var(--muted); background: var(--bg-alt); border:1px solid var(--line);
+    border-radius:8px; padding:10px 12px; margin-top:12px; line-height:1.5;
+  }
+
+  .reserve-toggle{
+    font-family: var(--font-mono); font-size: 11px; color: var(--copper); background:none; border:none;
+    cursor:pointer; padding:0; text-decoration: underline dashed;
+  }
+  .reserve-toggle:hover{ color: var(--copper-bright); }
+  tr.expand-row td{ background: var(--bg-alt); padding: 0; }
+  .breakdown-box{ padding: 10px 20px 12px 34px; }
+  .breakdown-title{ font-family: var(--font-mono); font-size: 10.5px; text-transform:uppercase; letter-spacing:0.05em; color: var(--muted); margin-bottom:6px; }
+  .breakdown-row{ display:flex; justify-content:space-between; max-width:360px; font-size:13px; padding:3px 0; color: var(--cream); }
+
+  .tabs{ display:flex; gap:10px; margin-bottom: 24px; }
+  .tab-btn{
+    flex:1; font-family: var(--font-display); font-weight:600; font-size:15px;
+    padding: 14px 18px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--muted); cursor:pointer; transition: all .15s;
+    display:flex; align-items:center; justify-content:center; gap:9px;
+  }
+  .tab-btn:hover{ border-color: var(--copper); color: var(--cream); }
+  .tab-btn.active{ border-color: var(--copper); color: var(--copper-bright); background: rgba(201,122,70,0.09); }
+  .tab-btn .tab-icon{ font-size:17px; }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Warsztat &mdash; magazyn elementów</div>
+  <h1>Inwentarz Warsztatu</h1>
+  <div class="subtitle">Rezystory, kondensatory, IC, złącza i cała reszta &mdash; wszystko w jednym miejscu.</div>
+  <div class="storage-bar" id="storage-bar"></div>
+
+  <div class="trace"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="magazyn"><span class="tab-icon">📦</span> Magazyn</button>
+    <button class="tab-btn" data-tab="projekty"><span class="tab-icon">🛠️</span> Projekty</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-magazyn">
+  <div class="panel">
+    <h2>Dodaj element <span class="sub" style="margin-left:auto;"></span>
+      <button class="btn-mini" id="btn-import-inv" type="button" style="margin-left:auto;">⇪ Importuj z CSV</button>
+      <input type="file" id="import-inv-file" accept=".csv,text/csv" style="display:none;">
+    </h2>
+    <div class="grid-form">
+      <div class="field">
+        <label for="f-name">Nazwa *</label>
+        <input id="f-name" type="text" placeholder="np. Rezystor 220Ω 1/4W">
+      </div>
+      <div class="field cat-field">
+        <label for="f-cat">Kategoria *</label>
+        <span class="cat-dot" id="f-cat-dot"></span>
+        <select id="f-cat"></select>
+      </div>
+      <div class="field">
+        <label for="f-qty">Ilość *</label>
+        <input id="f-qty" type="number" min="0" step="1" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="f-val">Wartość <span style="opacity:.6">(np. 220Ω, 100nF)</span></label>
+        <input id="f-val" type="text" placeholder="220Ω / 100nF / NPN...">
+      </div>
+      <div class="field">
+        <label for="f-pkg">Obudowa</label>
+        <input id="f-pkg" list="pkg-list" type="text" placeholder="THT, SMD 0805...">
+        <datalist id="pkg-list">
+          <option value="THT"><option value="SMD 0402"><option value="SMD 0603">
+          <option value="SMD 0805"><option value="SMD 1206"><option value="TO-92">
+          <option value="TO-220"><option value="TO-247"><option value="DIP-8">
+          <option value="DIP-14"><option value="SOIC-8"><option value="SOIC-14">
+          <option value="TQFP"><option value="QFN"><option value="Radialny (elektrolit)">
+          <option value="Axial">
+        </datalist>
+      </div>
+      <div class="field field-notes">
+        <label for="f-loc">Lokalizacja / notatki <span style="opacity:.6">(opcjonalnie, np. „szuflada B3”)</span></label>
+        <input id="f-loc" type="text" placeholder="szuflada B3, pudełko z SMD...">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-save">Dodaj element</button>
+      <button class="btn btn-ghost" id="btn-cancel" style="display:none;">Anuluj edycję</button>
+      <span class="hint" id="form-hint"></span>
+    </div>
+    <div class="info-note">Import CSV dopisuje elementy do magazynu (nic nie nadpisuje). Oczekiwane kolumny w pierwszym wierszu: <b>nazwa</b> (wymagane), kategoria, ilość, wartość, obudowa, lokalizacja — kolejność dowolna, brakujące kolumny są pomijane.</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search"><input type="text" id="search" placeholder="Szukaj po nazwie, wartości, obudowie..."></div>
+    <div class="field cat-field cat-filter">
+      <span class="cat-dot" id="filter-cat-dot"></span>
+      <select id="filter-cat"></select>
+    </div>
+  </div>
+
+  <div class="table-wrap"><div id="table-region"><div class="loading-state">Wczytywanie inwentarza…</div></div></div>
+
+  <div class="trace" style="margin-top:34px;"></div>
+
+  <div class="panel">
+    <h2>Lista zakupów <span class="sub">rzeczy do domówienia — z magazynu albo zupełnie nowe</span>
+      <button class="btn-mini" id="btn-import-shop" type="button" style="margin-left:auto;">⇪ Importuj z CSV</button>
+      <input type="file" id="import-shop-file" accept=".csv,text/csv" style="display:none;">
+    </h2>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-new" data-mode="new">Nowy element</button>
+      <button class="mode-btn" id="mode-existing" data-mode="existing">Z magazynu</button>
+    </div>
+    <div class="grid-form" id="shop-form-new">
+      <div class="field">
+        <label for="s-name">Nazwa *</label>
+        <input id="s-name" type="text" placeholder="np. Złącze JST-XH 4-pin">
+      </div>
+      <div class="field cat-field">
+        <label for="s-cat">Kategoria</label>
+        <span class="cat-dot" id="s-cat-dot"></span>
+        <select id="s-cat"></select>
+      </div>
+      <div class="field">
+        <label for="s-qty">Ilość *</label>
+        <input id="s-qty" type="number" min="1" step="1" placeholder="1">
+      </div>
+      <div class="field field-notes">
+        <label for="s-note">Notatka <span style="opacity:.6">(opcjonalnie)</span></label>
+        <input id="s-note" type="text" placeholder="np. do projektu mostówki">
+      </div>
+    </div>
+    <div class="grid-form" id="shop-form-existing" style="display:none;">
+      <div class="field" style="grid-column: 1 / 3;">
+        <label for="s-link">Element z magazynu *</label>
+        <select id="s-link"></select>
+      </div>
+      <div class="field">
+        <label for="s-qty2">Ilość do dokupienia *</label>
+        <input id="s-qty2" type="number" min="1" step="1" placeholder="1">
+      </div>
+      <div class="field field-notes">
+        <label for="s-note2">Notatka <span style="opacity:.6">(opcjonalnie)</span></label>
+        <input id="s-note2" type="text" placeholder="np. zapas się kończy">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-shop-add">Dodaj do listy zakupów</button>
+      <span class="hint" id="shop-hint"></span>
+    </div>
+    <div class="info-note">
+      Przy każdej pozycji jest link „Szukaj na TME ↗” — otwiera wyszukiwanie na tme.eu w nowej karcie. Pełna integracja z API TME (automatyczne ceny/dostępność) wymagałaby osobnego serwera po stronie backendu — więcej w rozmowie.
+      <br><br>Import CSV dopisuje pozycje do listy (nic nie nadpisuje). Oczekiwane kolumny: <b>nazwa</b> (wymagane), kategoria, ilość, notatka.
+    </div>
+  </div>
+
+  <div class="table-wrap"><div id="shop-table-region"><div class="loading-state">Wczytywanie listy zakupów…</div></div></div>
+  </div>
+
+  <div class="tab-panel" id="tab-projekty">
+  <div class="panel">
+    <h2>Płytki PCB <span class="sub">lista elementów potrzebnych do płytki + blokowanie ich z magazynu</span></h2>
+    <div class="grid-form" style="grid-template-columns: 1.3fr 1.3fr;">
+      <div class="field"><label for="p-name">Nazwa płytki *</label><input id="p-name" type="text" placeholder="np. Płytka MIDI-komp"></div>
+      <div class="field"><label for="p-notes">Notatka <span style="opacity:.6">(opcjonalnie)</span></label><input id="p-notes" type="text" placeholder="np. wersja z gniazdami DIN5"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-pcb-add">Dodaj płytkę</button>
+      <span class="hint" id="pcb-hint"></span>
+    </div>
+    <div class="info-note">Dla każdej płytki dodajesz elementy z magazynu (albo spoza niego) i możesz je „zablokować” — wtedy ich ilość znika z dostępnej puli w głównym magazynie, ale nadal fizycznie tam leży, tylko zarezerwowana pod ten projekt.</div>
+  </div>
+  <div id="pcb-list"><div class="table-wrap"><div class="loading-state">Wczytywanie płytek…</div></div></div>
+
+  <div class="trace" style="margin-top:34px;"></div>
+
+  <div class="panel">
+    <h2>Do zrobienia <span class="sub">zadania, notatki, postęp prac</span></h2>
+    <div class="grid-form" style="grid-template-columns: 1.3fr 1.3fr;">
+      <div class="field"><label for="t-task">Zadanie *</label><input id="t-task" type="text" placeholder="np. Zamówić blachę mosiężną na piszczałki"></div>
+      <div class="field"><label for="t-comment">Komentarz <span style="opacity:.6">(opcjonalnie)</span></label><input id="t-comment" type="text" placeholder="np. sprawdzić grubość u dostawcy"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-todo-add">Dodaj zadanie</button>
+      <span class="hint" id="todo-hint"></span>
+    </div>
+  </div>
+  <div class="table-wrap"><div id="todo-table-region"><div class="loading-state">Wczytywanie zadań…</div></div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CATEGORIES = [
+  "Rezystory","Kondensatory","Diody","Tranzystory","Układy scalone (IC)",
+  "Mikrokontrolery","Złącza","Przewody i kable","Przełączniki i przyciski",
+  "Czujniki","Silniki / napędy","Mechanika / obudowy","Narzędzia","Inne"
+];
+const CAT_COLORS = {
+  "Rezystory": "#c97a46", "Kondensatory": "#6fa97e", "Diody": "#e2b04a",
+  "Tranzystory": "#7fa8d1", "Układy scalone (IC)": "#b57fd1",
+  "Mikrokontrolery": "#e07456", "Złącza": "#8a9488", "Przewody i kable": "#5f6b60",
+  "Przełączniki i przyciski": "#d17f9c", "Czujniki": "#4fb0a8",
+  "Silniki / napędy": "#c1553d", "Mechanika / obudowy": "#a08a5f",
+  "Narzędzia": "#7d8fc9", "Inne": "#8a9488"
+};
+
+const STORAGE_KEY = "workshop-inventory-data";
+const HAS_CLAUDE_STORAGE = (typeof window.storage !== "undefined" && window.storage !== null);
+const HAS_FS_API = ('showSaveFilePicker' in window) && ('showOpenFilePicker' in window);
+const GOOGLE_CLIENT_ID = "226060024393-0anpfs126ujgqeakf9b67c0qcdtr9m10.apps.googleusercontent.com";
+const DRIVE_FILE_NAME = "inwentarz-warsztatu.json";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+
+let driveTokenClient = null;
+let driveAccessToken = null;
+let driveTokenExpiry = 0;
+let driveFileId = null;
+let driveReady = false;
+
+let items = [];
+let shopping = [];
+let todos = [];
+let pcbs = []; // {id, name, notes, created, parts:[{id, itemId|null, name, qtyNeeded, reserved}]}
+let storageMode = "local"; // "claude" | "gdrive" | "fsapi" | "local"
+let fsHandle = null;
+let fsReady = false;
+let pendingLocalChanges = false; // true when edits happened without a granted file connection
+
+let editingId = null;
+let activeCategory = null;
+let searchTerm = "";
+let sortKey = "name";
+let sortDir = 1;
+let shopMode = "new";
+
+const $ = (sel) => document.querySelector(sel);
+const tableRegion = $("#table-region");
+const shopTableRegion = $("#shop-table-region");
+const todoTableRegion = $("#todo-table-region");
+
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(()=> t.classList.remove("show"), 2400);
+}
+function uid(p){ return (p||'it_') + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function tmeUrl(name){ return "https://www.tme.eu/pl/katalog/?search=" + encodeURIComponent(name); }
+
+/* ---------- CSV import (inventory + shopping list) ---------- */
+function parseCSV(text){
+  const rows = [];
+  let i = 0, field = "", row = [], inQuotes = false;
+  const pushField = () => { row.push(field); field = ""; };
+  const pushRow = () => { rows.push(row); row = []; };
+  while(i < text.length){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += c; i++; continue;
+    }
+    if(c === '"'){ inQuotes = true; i++; continue; }
+    if(c === ','){ pushField(); i++; continue; }
+    if(c === ';'){ pushField(); i++; continue; } // tolerate semicolon-delimited exports too
+    if(c === '\t'){ pushField(); i++; continue; } // tolerate tab-delimited BOM exports (KiCad, Eagle, Altium...)
+    if(c === '\r'){ i++; continue; }
+    if(c === '\n'){ pushField(); pushRow(); i++; continue; }
+    field += c; i++; continue;
+  }
+  if(field.length || row.length){ pushField(); pushRow(); }
+  return rows.filter(r => !(r.length === 1 && r[0].trim() === ""));
+}
+function stripPl(s){
+  const map = {'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'};
+  return String(s||"").toLowerCase().split("").map(ch => map[ch] || ch).join("").trim();
+}
+function findCol(header, variants){
+  for(let i = 0; i < header.length; i++){ if(variants.includes(header[i])) return i; }
+  return -1;
+}
+function matchCategoryLoose(input){
+  if(!input) return null;
+  const norm = stripPl(input);
+  return CATEGORIES.find(c => stripPl(c) === norm) || null;
+}
+
+async function handleInventoryImportFile(file){
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if(rows.length < 2){ toast("Plik jest pusty albo nie zawiera wierszy z danymi"); return; }
+  const header = rows[0].map(h => stripPl(h));
+  const idx = {
+    name: findCol(header, ["nazwa","name"]),
+    category: findCol(header, ["kategoria","category"]),
+    qty: findCol(header, ["ilosc","qty","quantity"]),
+    value: findCol(header, ["wartosc","value"]),
+    pkg: findCol(header, ["obudowa","package","pkg"]),
+    loc: findCol(header, ["lokalizacja","location","notatka","notatki","notes"])
+  };
+  if(idx.name === -1){ toast("Nie znaleziono kolumny „nazwa” w pliku CSV"); return; }
+  let added = 0, updated = 0, skipped = 0;
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(c => (c||"").trim() === "")) continue;
+    const name = (row[idx.name] || "").trim();
+    if(!name){ skipped++; continue; }
+    let category = idx.category >= 0 ? (row[idx.category] || "").trim() : "";
+    if(!CATEGORIES.includes(category)) category = matchCategoryLoose(category) || "Inne";
+    let qty = idx.qty >= 0 ? parseFloat((row[idx.qty] || "").replace(",", ".")) : 1;
+    if(isNaN(qty) || qty < 0) qty = 1;
+    const value = idx.value >= 0 ? (row[idx.value] || "").trim() : "";
+    const pkg = idx.pkg >= 0 ? (row[idx.pkg] || "").trim() : "";
+    const loc = idx.loc >= 0 ? (row[idx.loc] || "").trim() : "";
+
+    const matchKey = stripPl(name);
+    const existing = items.find(it => stripPl(it.name) === matchKey);
+    if(existing){
+      // same element already in the warehouse — add quantities instead of duplicating the row
+      existing.qty = (Number(existing.qty)||0) + qty;
+      if(!existing.value && value) existing.value = value;
+      if(!existing.pkg && pkg) existing.pkg = pkg;
+      if(!existing.loc && loc) existing.loc = loc;
+      updated++;
+    }else{
+      items.push({ id: uid('it_'), name, category, qty, value, pkg, loc, created: Date.now() });
+      added++;
+    }
+  }
+  if(added === 0 && updated === 0){ toast("Nie zaimportowano żadnych wierszy — sprawdź plik"); return; }
+  await saveAll();
+  render();
+  refreshShoppingLinkOptions();
+  renderPcbs();
+  const parts = [];
+  if(added) parts.push(`dodano ${added} nowych`);
+  if(updated) parts.push(`zsumowano ilość dla ${updated} istniejących`);
+  if(skipped) parts.push(`pominięto ${skipped} bez nazwy`);
+  toast(parts.join(", "));
+}
+
+async function handleShoppingImportFile(file){
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if(rows.length < 2){ toast("Plik jest pusty albo nie zawiera wierszy z danymi"); return; }
+  const header = rows[0].map(h => stripPl(h));
+  const idx = {
+    name: findCol(header, ["nazwa","name"]),
+    category: findCol(header, ["kategoria","category"]),
+    qty: findCol(header, ["ilosc","qty","quantity"]),
+    note: findCol(header, ["notatka","note","uwagi","notes"])
+  };
+  if(idx.name === -1){ toast("Nie znaleziono kolumny „nazwa” w pliku CSV"); return; }
+  let added = 0, updated = 0, skipped = 0;
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(c => (c||"").trim() === "")) continue;
+    const name = (row[idx.name] || "").trim();
+    if(!name){ skipped++; continue; }
+    let category = idx.category >= 0 ? (row[idx.category] || "").trim() : "";
+    if(category && !CATEGORIES.includes(category)) category = matchCategoryLoose(category) || "";
+    let qty = idx.qty >= 0 ? parseFloat((row[idx.qty] || "").replace(",", ".")) : 1;
+    if(isNaN(qty) || qty <= 0) qty = 1;
+    const note = idx.note >= 0 ? (row[idx.note] || "").trim() : "";
+
+    const matchKey = stripPl(name);
+    // only merge into plain (not-yet-bought, not linked to a warehouse item) existing entries
+    const existing = shopping.find(s => !s.bought && !s.linkedItemId && stripPl(s.name) === matchKey);
+    if(existing){
+      existing.qty = (Number(existing.qty)||0) + qty;
+      if(!existing.note && note) existing.note = note;
+      updated++;
+    }else{
+      shopping.push({ id: uid('sh_'), name, category: category || "", qty, note, linkedItemId: null, bought: false, created: Date.now() });
+      added++;
+    }
+  }
+  if(added === 0 && updated === 0){ toast("Nie zaimportowano żadnych wierszy — sprawdź plik"); return; }
+  await saveAll();
+  renderShopping();
+  const parts = [];
+  if(added) parts.push(`dodano ${added} nowych`);
+  if(updated) parts.push(`zsumowano ilość dla ${updated} istniejących`);
+  if(skipped) parts.push(`pominięto ${skipped} bez nazwy`);
+  toast(parts.join(", "));
+}
+
+/* ---------- BOM import (per PCB, from KiCad/Eagle/Altium-style exports) ---------- */
+async function handleBomImportFile(pcbId, file){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if(rows.length < 2){ toast("Plik BOM jest pusty albo nieprawidłowy"); return; }
+  const header = rows[0].map(h => stripPl(h));
+  const idx = {
+    value: findCol(header, ["value","wartosc","part","description","opis","nazwa","comment","name"]),
+    footprint: findCol(header, ["footprint","obudowa","package","pkg"]),
+    qty: findCol(header, ["qty","quantity","ilosc","count"]),
+    ref: findCol(header, ["reference","ref","references","refs","designator"])
+  };
+  if(idx.value === -1 && idx.ref === -1){
+    toast("Nie rozpoznano kolumn w pliku BOM (brak Value/Reference)");
+    return;
+  }
+  let added = 0, updated = 0, skipped = 0;
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(c => (c||"").trim() === "")) continue;
+    const value = idx.value >= 0 ? (row[idx.value] || "").trim() : "";
+    const footprint = idx.footprint >= 0 ? (row[idx.footprint] || "").trim() : "";
+    const refsRaw = idx.ref >= 0 ? (row[idx.ref] || "").trim() : "";
+    const refsList = refsRaw ? refsRaw.split(/[,;\s]+/).filter(Boolean) : [];
+    let qty = idx.qty >= 0 ? parseInt((row[idx.qty] || "").replace(",", "."), 10) : NaN;
+    if(isNaN(qty) || qty <= 0) qty = refsList.length > 0 ? refsList.length : 1;
+    const name = value || refsList[0] || "";
+    if(!name){ skipped++; continue; }
+
+    // try to auto-link to an inventory item with a matching name (and footprint, when both are known)
+    const matchKey = stripPl(name);
+    let matchedItem = items.find(it => stripPl(it.name) === matchKey && footprint && it.pkg && stripPl(it.pkg) === stripPl(footprint));
+    if(!matchedItem) matchedItem = items.find(it => stripPl(it.name) === matchKey);
+
+    const existingPart = p.parts.find(pt => stripPl(pt.name) === matchKey);
+    if(existingPart){
+      existingPart.qtyNeeded = qty;
+      if(refsRaw) existingPart.refs = refsRaw;
+      if(!existingPart.itemId && matchedItem) existingPart.itemId = matchedItem.id;
+      updated++;
+    }else{
+      p.parts.push({ id: uid('pp_'), itemId: matchedItem ? matchedItem.id : null, name, qtyNeeded: qty, reserved: false, refs: refsRaw || "" });
+      added++;
+    }
+  }
+  if(added === 0 && updated === 0){ toast("Nie zaimportowano żadnych wierszy z BOM"); return; }
+  await saveAll();
+  renderPcbs();
+  render();
+  const parts = [];
+  if(added) parts.push(`dodano ${added} nowych`);
+  if(updated) parts.push(`zaktualizowano ${updated} istniejących`);
+  if(skipped) parts.push(`pominięto ${skipped}`);
+  toast(`BOM „${p.name}”: ${parts.join(", ")}`);
+}
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("workshop-inventory-db", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("handles");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readonly");
+      const r = tx.objectStore("handles").get(key);
+      r.onsuccess = () => resolve(r.result || null);
+      r.onerror = () => reject(r.error);
+    });
+  }catch(e){ return null; }
+}
+async function idbSet(key, val){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").put(val, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ return false; }
+}
+
+/* ---------- storage mode + file connection ---------- */
+async function initStorageMode(){
+  if(HAS_CLAUDE_STORAGE){ storageMode = "claude"; return; }
+  const preferred = localStorage.getItem("preferredBackend");
+  if(preferred === "gdrive"){
+    storageMode = "gdrive";
+    driveFileId = localStorage.getItem("driveFileId") || null;
+    return; // token is not persisted; user needs one click to (re)connect
+  }
+  if(preferred === "fsapi" && HAS_FS_API){
+    storageMode = "fsapi";
+    fsHandle = await idbGet("invFileHandle");
+    if(fsHandle){
+      try{
+        const perm = await fsHandle.queryPermission({ mode: "readwrite" });
+        fsReady = (perm === "granted");
+      }catch(e){ fsReady = false; }
+    }
+    return;
+  }
+  storageMode = "local";
+}
+
+/* ---------- Google Drive backend ---------- */
+function driveHasGis(){ return (typeof google !== "undefined" && google.accounts && google.accounts.oauth2); }
+
+function connectGoogleDrive(){
+  return new Promise((resolve, reject) => {
+    if(!driveHasGis()){ reject(new Error("Google Identity Services niedostępne")); return; }
+    if(!driveTokenClient){
+      driveTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: DRIVE_SCOPE,
+        callback: () => {} // overwritten per-call below
+      });
+    }
+    driveTokenClient.callback = (resp) => {
+      if(resp.error){ reject(new Error(resp.error)); return; }
+      driveAccessToken = resp.access_token;
+      driveTokenExpiry = Date.now() + ((resp.expires_in || 3600) * 1000);
+      resolve(driveAccessToken);
+    };
+    driveTokenClient.requestAccessToken({ prompt: "" });
+  });
+}
+
+async function ensureDriveToken(){
+  if(driveAccessToken && Date.now() < driveTokenExpiry - 60000) return true;
+  try{ await connectGoogleDrive(); return true; }
+  catch(e){ return false; }
+}
+
+async function driveFindOrCreateFile(){
+  const headers = { Authorization: "Bearer " + driveAccessToken };
+  if(driveFileId){
+    // verify the cached file id is still valid/accessible
+    const check = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?fields=id,trashed`, { headers });
+    if(check.ok){
+      const meta = await check.json();
+      if(!meta.trashed) return;
+    }
+    driveFileId = null;
+  }
+  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)`, { headers });
+  const data = await res.json();
+  if(data.files && data.files.length > 0){
+    driveFileId = data.files[0].id;
+  }else{
+    const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: DRIVE_FILE_NAME, mimeType: "application/json" })
+    });
+    const created = await createRes.json();
+    driveFileId = created.id;
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+      method: "PATCH",
+      headers: { Authorization: "Bearer " + driveAccessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ items: [], shopping: [], todos: [], pcbs: [] })
+    });
+  }
+  localStorage.setItem("driveFileId", driveFileId);
+}
+
+async function driveReadRaw(){
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, {
+    headers: { Authorization: "Bearer " + driveAccessToken }
+  });
+  if(!res.ok) throw new Error("Odczyt z Dysku nie powiódł się");
+  return await res.text();
+}
+
+async function driveWriteRaw(text){
+  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+    method: "PATCH",
+    headers: { Authorization: "Bearer " + driveAccessToken, "Content-Type": "application/json" },
+    body: text
+  });
+  if(!res.ok) throw new Error("Zapis do Dysku nie powiódł się");
+}
+
+async function connectGoogleDriveFlow(){
+  try{
+    toast("Łączenie z Google Drive…");
+    const ok = await ensureDriveToken();
+    if(!ok){ toast("Nie udało się zalogować do Google"); return; }
+    await driveFindOrCreateFile();
+    if(pendingLocalChanges){
+      await driveWriteRaw(JSON.stringify({ items, shopping, todos, pcbs }, null, 2));
+      pendingLocalChanges = false;
+      toast("Zsynchronizowano zmiany z Dyskiem Google");
+    }else{
+      const text = await driveReadRaw();
+      applyLoadedData(text.trim() ? JSON.parse(text) : null);
+      toast("Wczytano dane z Dysku Google");
+    }
+    storageMode = "gdrive";
+    driveReady = true;
+    localStorage.setItem("preferredBackend", "gdrive");
+    render(); renderShopping(); renderTodos(); renderPcbs(); renderStorageBar(); refreshShoppingLinkOptions();
+  }catch(e){
+    toast("Nie udało się połączyć z Google Drive");
+  }
+}
+
+async function driveDisconnect(){
+  driveReady = false;
+  driveAccessToken = null;
+  driveFileId = null;
+  localStorage.removeItem("driveFileId");
+  localStorage.removeItem("preferredBackend");
+  storageMode = HAS_FS_API ? "fsapi" : "local";
+  fsHandle = null; fsReady = false;
+  renderStorageBar();
+  toast("Odłączono od Google Drive");
+}
+
+/* ---------- File System Access (local file) backend ---------- */
+
+async function pickNewFile(){
+  try{
+    const handle = await window.showSaveFilePicker({
+      suggestedName: "inwentarz-warsztatu.json",
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    fsHandle = handle;
+    fsReady = true;
+    storageMode = "fsapi";
+    localStorage.setItem("preferredBackend", "fsapi");
+    await idbSet("invFileHandle", handle);
+    await writeToFile(); // push current (possibly locally-cached) data into the newly chosen file
+    pendingLocalChanges = false;
+    renderStorageBar();
+    toast("Połączono z plikiem zapisu");
+  }catch(e){ /* user cancelled */ }
+}
+
+async function pickExistingFile(){
+  try{
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    const perm = await handle.requestPermission({ mode: "readwrite" });
+    if(perm !== "granted"){ toast("Brak zgody na dostęp do pliku"); return; }
+    fsHandle = handle;
+    fsReady = true;
+    storageMode = "fsapi";
+    localStorage.setItem("preferredBackend", "fsapi");
+    await idbSet("invFileHandle", handle);
+    await readFromFile();
+    pendingLocalChanges = false;
+    render(); renderShopping(); renderTodos(); renderPcbs(); renderStorageBar(); refreshShoppingLinkOptions();
+    toast("Wczytano dane z pliku");
+  }catch(e){ /* user cancelled */ }
+}
+
+async function reauthorize(){
+  if(!fsHandle) return;
+  try{
+    const perm = await fsHandle.requestPermission({ mode: "readwrite" });
+    fsReady = (perm === "granted");
+    if(fsReady){
+      // IMPORTANT: if edits were made while disconnected, push them to the file
+      // instead of silently overwriting them with the (stale) file contents.
+      if(pendingLocalChanges){
+        await writeToFile();
+        pendingLocalChanges = false;
+        toast("Zsynchronizowano zmiany z plikiem");
+      }else{
+        await readFromFile();
+        toast("Dostęp przyznany");
+      }
+      render(); renderShopping(); renderTodos(); renderPcbs(); refreshShoppingLinkOptions();
+    }else{
+      toast("Brak zgody na dostęp do pliku");
+    }
+  }catch(e){ toast("Nie udało się uzyskać dostępu"); }
+  renderStorageBar();
+}
+
+async function driveReauthorize(){
+  await connectGoogleDriveFlow();
+}
+
+function renderStorageBar(){
+  const bar = $("#storage-bar");
+  if(storageMode === "claude"){
+    bar.innerHTML = `<span class="dot ok"></span> Dane zapisywane w pamięci Claude — dostępne po ponownym otwarciu tego artefaktu.`;
+    return;
+  }
+
+  if(storageMode === "gdrive"){
+    if(driveReady && driveAccessToken){
+      bar.innerHTML = `<span class="dot ok"></span> Zapisano na Dysku Google: <span class="filename">${DRIVE_FILE_NAME}</span><span class="sp"></span><button class="btn-mini" id="btn-drive-disconnect">Rozłącz</button>`;
+      $("#btn-drive-disconnect").addEventListener("click", driveDisconnect);
+    }else{
+      bar.innerHTML = `<span class="dot warn"></span> Dysk Google był podłączony &mdash; zaloguj się ponownie${pendingLocalChanges ? " (masz niezapisane zmiany)" : ""}.<span class="sp"></span><button class="btn-mini" id="btn-drive-reauth">Zaloguj przez Google</button>`;
+      $("#btn-drive-reauth").addEventListener("click", driveReauthorize);
+    }
+    return;
+  }
+
+  if(storageMode === "fsapi"){
+    if(fsHandle && fsReady){
+      bar.innerHTML = `<span class="dot ok"></span> Zapisano do pliku: <span class="filename">${escapeHtml(fsHandle.name)}</span><span class="sp"></span><button class="btn-mini" id="btn-change-file">Zmień plik</button>`;
+      $("#btn-change-file").addEventListener("click", pickNewFile);
+    }else if(fsHandle && !fsReady){
+      bar.innerHTML = `<span class="dot warn"></span> Plik <span class="filename">${escapeHtml(fsHandle.name)}</span> był podłączony &mdash; wznów dostęp${pendingLocalChanges ? " (masz niezapisane zmiany)" : ""}.<span class="sp"></span><button class="btn-mini" id="btn-reauth">Zezwól na dostęp</button>`;
+      $("#btn-reauth").addEventListener("click", reauthorize);
+    }else{
+      bar.innerHTML = `<span class="dot warn"></span> Dane tymczasowo w tej przeglądarce &mdash; wybierz plik, żeby zapisywać na stałe w jednym miejscu.<span class="sp"></span>
+        <button class="btn-mini" id="btn-new-file">Utwórz nowy plik</button>
+        <button class="btn-mini" id="btn-open-file">Otwórz istniejący plik</button>`;
+      $("#btn-new-file").addEventListener("click", pickNewFile);
+      $("#btn-open-file").addEventListener("click", pickExistingFile);
+    }
+    return;
+  }
+
+  // storageMode === "local": nothing connected yet — offer every available backend
+  let html = `<span class="dot warn"></span> Dane tymczasowo w tej przeglądarce &mdash; połącz trwałe miejsce zapisu.<span class="sp"></span>
+    <button class="btn-mini" id="btn-connect-drive">Połącz z Google Drive</button>`;
+  if(HAS_FS_API){
+    html += `<button class="btn-mini" id="btn-new-file">Wybierz plik lokalny</button>`;
+  }
+  bar.innerHTML = html;
+  $("#btn-connect-drive").addEventListener("click", connectGoogleDriveFlow);
+  if(HAS_FS_API){ $("#btn-new-file").addEventListener("click", pickNewFile); }
+}
+
+/* ---------- low level read/write per backend ---------- */
+async function writeToFile(){
+  const payload = JSON.stringify({ items, shopping, todos, pcbs }, null, 2);
+  if(storageMode === "claude"){
+    try{
+      const res = await window.storage.set(STORAGE_KEY, payload, false);
+      if(!res){ toast("Błąd zapisu danych"); }
+    }catch(e){ toast("Błąd zapisu danych"); }
+    return;
+  }
+  if(storageMode === "fsapi" && fsHandle && fsReady){
+    try{
+      const writable = await fsHandle.createWritable();
+      await writable.write(payload);
+      await writable.close();
+    }catch(e){ toast("Błąd zapisu do pliku"); }
+  }
+  if(storageMode === "gdrive" && driveReady && driveFileId){
+    try{
+      const ok = await ensureDriveToken();
+      if(ok){ await driveWriteRaw(payload); }
+      else{ pendingLocalChanges = true; renderStorageBar(); }
+    }catch(e){ pendingLocalChanges = true; renderStorageBar(); toast("Błąd zapisu na Dysk Google"); }
+  }
+  // always mirror to localStorage as a local cache/safety net
+  try{ localStorage.setItem(STORAGE_KEY, payload); }catch(e){}
+}
+
+async function readFromFile(){
+  if(storageMode === "claude"){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      const data = res && res.value ? JSON.parse(res.value) : null;
+      applyLoadedData(data);
+    }catch(e){ applyLoadedData(null); }
+    return;
+  }
+  if(storageMode === "fsapi" && fsHandle && fsReady){
+    try{
+      const file = await fsHandle.getFile();
+      const text = await file.text();
+      const data = text.trim() ? JSON.parse(text) : null;
+      applyLoadedData(data);
+    }catch(e){ applyLoadedData(null); }
+    return;
+  }
+  if(storageMode === "gdrive" && driveReady && driveFileId){
+    try{
+      const text = await driveReadRaw();
+      applyLoadedData(text.trim() ? JSON.parse(text) : null);
+    }catch(e){ applyLoadedData(null); }
+  }
+}
+
+function applyLoadedData(data){
+  if(!data){ items = []; shopping = []; todos = []; pcbs = []; return; }
+  if(Array.isArray(data)){ items = data; shopping = []; todos = []; pcbs = []; return; } // legacy format
+  items = Array.isArray(data.items) ? data.items : [];
+  shopping = Array.isArray(data.shopping) ? data.shopping : [];
+  todos = Array.isArray(data.todos) ? data.todos : [];
+  pcbs = Array.isArray(data.pcbs) ? data.pcbs : [];
+}
+
+// Top-level load: on fresh page load, prefer the real backend if ready;
+// otherwise fall back to the local browser cache (best-effort, may be stale
+// until the file/Claude storage connection is (re)confirmed).
+async function loadAll(){
+  if(storageMode === "claude"){ await readFromFile(); return; }
+  if(storageMode === "fsapi" && fsHandle && fsReady){ await readFromFile(); return; }
+  // gdrive: token is never persisted across reloads, so on a fresh load we
+  // always start from the local cache and wait for the user to click
+  // "Zaloguj przez Google" to sync with the real file (see driveReauthorize).
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    applyLoadedData(raw ? JSON.parse(raw) : null);
+  }catch(e){ applyLoadedData(null); }
+}
+
+// Top-level save: writes to the real backend when connected; if the fsapi
+// backend exists but isn't authorized yet, marks changes as pending so they
+// get pushed (not overwritten) once access is granted.
+async function saveAll(){
+  if(storageMode === "claude"){ await writeToFile(); return; }
+  if(storageMode === "fsapi" && fsHandle && fsReady){ await writeToFile(); return; }
+  if(storageMode === "gdrive" && driveReady && driveFileId){ await writeToFile(); return; }
+  if((storageMode === "fsapi" && (!fsHandle || !fsReady)) || (storageMode === "gdrive" && (!driveReady || !driveFileId))){
+    pendingLocalChanges = true;
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs })); }catch(e){}
+    renderStorageBar();
+    return;
+  }
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs })); }catch(e){}
+}
+
+/* ---------- category dot selects ---------- */
+function fillCategorySelect(sel, opts){
+  opts = opts || {};
+  let html = "";
+  if(opts.allowAll) html += `<option value="">Wszystkie kategorie</option>`;
+  if(opts.allowNone) html += `<option value="">— brak —</option>`;
+  CATEGORIES.forEach(c => html += `<option value="${c}">${c}</option>`);
+  sel.innerHTML = html;
+}
+function wireCategoryDot(selectEl, dotEl, defaultColor){
+  const update = () => {
+    const c = CAT_COLORS[selectEl.value];
+    dotEl.style.background = c || (defaultColor || "#5f6b60");
+    dotEl.style.boxShadow = c ? `0 0 5px 0 ${c}` : "none";
+  };
+  selectEl.addEventListener("change", update);
+  update();
+}
+
+/* ---------- PCB reservations affecting inventory availability ---------- */
+function reservedQtyForItem(itemId){
+  let sum = 0;
+  pcbs.forEach(p => (p.parts||[]).forEach(part => {
+    if(part.itemId === itemId && part.reserved) sum += Number(part.qtyNeeded)||0;
+  }));
+  return sum;
+}
+function reservationBreakdownForItem(itemId){
+  const list = [];
+  pcbs.forEach(p => (p.parts||[]).forEach(part => {
+    if(part.itemId === itemId && part.reserved) list.push({ pcbId: p.id, pcbName: p.name, qty: Number(part.qtyNeeded)||0 });
+  }));
+  return list;
+}
+function pcbShortfalls(p){
+  const list = [];
+  (p.parts||[]).forEach(part => {
+    if(!part.itemId){
+      // parts sourced outside the warehouse are always "missing" by definition
+      list.push({ partId: part.id, itemId: null, name: part.name, qtyNeeded: part.qtyNeeded, missingQty: part.qtyNeeded });
+      return;
+    }
+    if(part.reserved) return; // already covered from stock
+    const it = items.find(i => i.id === part.itemId);
+    const avail = it ? (it.qty - reservedQtyForItem(part.itemId)) : 0;
+    const missingQty = Math.max(0, part.qtyNeeded - Math.max(0, avail));
+    if(missingQty > 0) list.push({ partId: part.id, itemId: part.itemId, name: part.name, qtyNeeded: part.qtyNeeded, missingQty });
+  });
+  return list;
+}
+let expandedItemIds = new Set();
+
+/* ---------- inventory: stats / filter / render ---------- */
+function renderStats(){
+  const totalItems = items.length;
+  const totalQty = items.reduce((s,it)=> s + (Number(it.qty)||0), 0);
+  const catCount = new Set(items.map(it=>it.category)).size;
+  const toBuy = shopping.filter(s => !s.bought).length;
+  const openTodos = todos.filter(t => !t.done).length;
+  $("#stats").innerHTML = `
+    <div class="stat"><div class="num">${totalItems}</div><div class="lbl">Pozycji w magazynie</div></div>
+    <div class="stat"><div class="num">${totalQty}</div><div class="lbl">Sztuk łącznie</div></div>
+    <div class="stat"><div class="num">${catCount}</div><div class="lbl">Kategorii w użyciu</div></div>
+    <div class="stat"><div class="num">${toBuy}</div><div class="lbl">Do kupienia</div></div>
+    <div class="stat"><div class="num">${openTodos}</div><div class="lbl">Zadań otwartych</div></div>
+  `;
+}
+
+function getFiltered(){
+  let list = items.slice();
+  if(activeCategory) list = list.filter(it => it.category === activeCategory);
+  if(searchTerm){
+    const q = searchTerm.toLowerCase();
+    list = list.filter(it =>
+      (it.name||"").toLowerCase().includes(q) ||
+      (it.value||"").toLowerCase().includes(q) ||
+      (it.pkg||"").toLowerCase().includes(q) ||
+      (it.loc||"").toLowerCase().includes(q)
+    );
+  }
+  list.sort((a,b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if(sortKey === "qty"){ av = Number(av)||0; bv = Number(bv)||0; }
+    else { av = (av||"").toString().toLowerCase(); bv = (bv||"").toString().toLowerCase(); }
+    if(av < bv) return -1*sortDir;
+    if(av > bv) return 1*sortDir;
+    return 0;
+  });
+  return list;
+}
+
+function colFor(key, label){
+  const arrow = sortKey === key ? (sortDir === 1 ? "&uarr;" : "&darr;") : "";
+  return `<th data-sort="${key}">${label} <span class="arrow">${arrow}</span></th>`;
+}
+
+function renderTable(){
+  const list = getFiltered();
+  if(items.length === 0){
+    tableRegion.innerHTML = `<div class="empty"><div class="big">Magazyn jest pusty</div>Dodaj pierwszy element powyżej, żeby zacząć inwentaryzację.</div>`;
+    return;
+  }
+  if(list.length === 0){
+    tableRegion.innerHTML = `<div class="empty"><div class="big">Brak wyników</div>Zmień filtr kategorii albo wyczyść wyszukiwanie.</div>`;
+    return;
+  }
+  let html = `<table><thead><tr>
+    ${colFor("name","Nazwa")}${colFor("category","Kategoria")}${colFor("qty","Ilość")}${colFor("value","Wartość")}${colFor("pkg","Obudowa")}
+    <th class="nosort">Akcje</th>
+  </tr></thead><tbody>`;
+  list.forEach(it => {
+    const color = CAT_COLORS[it.category] || "#8a9488";
+    const reserved = reservedQtyForItem(it.id);
+    const expanded = expandedItemIds.has(it.id);
+    html += `<tr data-id="${it.id}">
+      <td><div class="item-name">${escapeHtml(it.name)}</div>${it.loc ? `<div class="item-loc">${escapeHtml(it.loc)}</div>` : ""}</td>
+      <td><span class="badge" style="border-color:${color}55; color:${color}; background:${color}14;">${it.category}</span></td>
+      <td class="qty">${it.qty}${reserved > 0 ? `<div class="stock-hint">zablokowane: ${reserved} · dostępne: ${Math.max(0, it.qty - reserved)} &nbsp;<button class="reserve-toggle" data-toggle="${it.id}">${expanded ? "▾ ukryj" : "▸ szczegóły"}</button></div>` : ""}</td>
+      <td class="val-mono">${it.value ? escapeHtml(it.value) : "—"}</td>
+      <td class="pkg">${it.pkg ? escapeHtml(it.pkg) : "—"}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn edit" title="Edytuj" data-id="${it.id}">✎</button>
+        <button class="icon-btn del" title="Usuń" data-id="${it.id}">✕</button>
+      </div></td>
+    </tr>`;
+    if(reserved > 0 && expanded){
+      const breakdown = reservationBreakdownForItem(it.id);
+      html += `<tr class="expand-row"><td colspan="6">
+        <div class="breakdown-box">
+          <div class="breakdown-title">Zablokowane pod:</div>
+          ${breakdown.map(b => `<div class="breakdown-row"><span>${escapeHtml(b.pcbName)}</span><span class="val-mono">${b.qty} szt.</span></div>`).join("")}
+        </div>
+      </td></tr>`;
+    }
+  });
+  html += `</tbody></table>`;
+  tableRegion.innerHTML = html;
+  tableRegion.querySelectorAll("thead th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if(sortKey === key){ sortDir *= -1; } else { sortKey = key; sortDir = 1; }
+      renderTable();
+    });
+  });
+  tableRegion.querySelectorAll(".icon-btn.edit").forEach(btn => btn.addEventListener("click", () => startEdit(btn.dataset.id)));
+  tableRegion.querySelectorAll(".icon-btn.del").forEach(btn => btn.addEventListener("click", () => deleteItem(btn.dataset.id)));
+  tableRegion.querySelectorAll(".reserve-toggle").forEach(btn => btn.addEventListener("click", () => {
+    const id = btn.dataset.toggle;
+    if(expandedItemIds.has(id)) expandedItemIds.delete(id); else expandedItemIds.add(id);
+    renderTable();
+  }));
+}
+
+function render(){ renderStats(); renderTable(); }
+
+function clearForm(){
+  $("#f-name").value = ""; $("#f-cat").value = CATEGORIES[0]; $("#f-qty").value = "";
+  $("#f-val").value = ""; $("#f-pkg").value = ""; $("#f-loc").value = "";
+  wireCategoryDot($("#f-cat"), $("#f-cat-dot"));
+  editingId = null;
+  $("#btn-save").textContent = "Dodaj element";
+  $("#btn-cancel").style.display = "none";
+  $("#form-hint").textContent = "";
+}
+
+function startEdit(id){
+  const it = items.find(i => i.id === id);
+  if(!it) return;
+  editingId = id;
+  $("#f-name").value = it.name; $("#f-cat").value = it.category; $("#f-qty").value = it.qty;
+  $("#f-val").value = it.value || ""; $("#f-pkg").value = it.pkg || ""; $("#f-loc").value = it.loc || "";
+  wireCategoryDot($("#f-cat"), $("#f-cat-dot"));
+  $("#btn-save").textContent = "Zapisz zmiany";
+  $("#btn-cancel").style.display = "inline-block";
+  $("#form-hint").textContent = "";
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+async function deleteItem(id){
+  const it = items.find(i => i.id === id);
+  if(!it) return;
+  if(!confirm(`Usunąć „${it.name}” z inwentarza?`)) return;
+  items = items.filter(i => i.id !== id);
+  pcbs.forEach(p => (p.parts||[]).forEach(part => {
+    if(part.itemId === id){ part.itemId = null; part.reserved = false; part.name = part.name + " (usunięty z magazynu)"; }
+  }));
+  await saveAll();
+  render();
+  refreshShoppingLinkOptions();
+  renderPcbs();
+  toast("Usunięto element");
+}
+
+async function handleSave(){
+  const name = $("#f-name").value.trim();
+  const category = $("#f-cat").value;
+  const qtyRaw = $("#f-qty").value;
+  const value = $("#f-val").value.trim();
+  const pkg = $("#f-pkg").value.trim();
+  const loc = $("#f-loc").value.trim();
+  if(!name){ $("#form-hint").textContent = "Podaj nazwę elementu."; $("#f-name").focus(); return; }
+  if(qtyRaw === "" || isNaN(Number(qtyRaw)) || Number(qtyRaw) < 0){
+    $("#form-hint").textContent = "Podaj poprawną ilość."; $("#f-qty").focus(); return;
+  }
+  if(editingId){
+    const it = items.find(i => i.id === editingId);
+    Object.assign(it, { name, category, qty: Number(qtyRaw), value, pkg, loc });
+    toast("Zapisano zmiany");
+  }else{
+    items.push({ id: uid('it_'), name, category, qty: Number(qtyRaw), value, pkg, loc, created: Date.now() });
+    toast("Dodano element");
+  }
+  await saveAll();
+  render();
+  refreshShoppingLinkOptions();
+  clearForm();
+}
+
+/* ---------- shopping list ---------- */
+function itemFullLabel(it){
+  const extra = [];
+  if(it.value) extra.push(it.value);
+  if(it.pkg) extra.push(it.pkg);
+  let label = it.name;
+  if(extra.length) label += ` (${extra.join(", ")})`;
+  const avail = it.qty - reservedQtyForItem(it.id);
+  label += ` — na stanie: ${it.qty}`;
+  if(reservedQtyForItem(it.id) > 0) label += ` (dost.: ${Math.max(0,avail)})`;
+  if(it.loc) label += ` · ${it.loc}`;
+  return label;
+}
+
+function refreshShoppingLinkOptions(){
+  const sel = $("#s-link");
+  if(!sel) return;
+  const current = sel.value;
+  const sorted = items.slice().sort((a,b) => a.name.localeCompare(b.name));
+  sel.innerHTML = sorted.length
+    ? sorted.map(it => `<option value="${it.id}">${escapeHtml(itemFullLabel(it))}</option>`).join("")
+    : `<option value="">Brak elementów w magazynie</option>`;
+  if(sorted.some(it => it.id === current)) sel.value = current;
+}
+
+function setShopMode(mode){
+  shopMode = mode;
+  $("#mode-new").classList.toggle("active", mode === "new");
+  $("#mode-existing").classList.toggle("active", mode === "existing");
+  $("#shop-form-new").style.display = mode === "new" ? "grid" : "none";
+  $("#shop-form-existing").style.display = mode === "existing" ? "grid" : "none";
+  $("#shop-hint").textContent = "";
+}
+
+async function handleShopAdd(){
+  if(shopMode === "new"){
+    const name = $("#s-name").value.trim();
+    const category = $("#s-cat").value;
+    const qty = $("#s-qty").value;
+    const note = $("#s-note").value.trim();
+    if(!name){ $("#shop-hint").textContent = "Podaj nazwę elementu."; $("#s-name").focus(); return; }
+    if(qty === "" || isNaN(Number(qty)) || Number(qty) <= 0){ $("#shop-hint").textContent = "Podaj poprawną ilość."; $("#s-qty").focus(); return; }
+    shopping.push({ id: uid('sh_'), name, category: category || "", qty: Number(qty), note, linkedItemId: null, bought: false, created: Date.now() });
+    $("#s-name").value = ""; $("#s-qty").value = ""; $("#s-note").value = "";
+  }else{
+    const linkId = $("#s-link").value;
+    const qty = $("#s-qty2").value;
+    const note = $("#s-note2").value.trim();
+    if(!linkId){ $("#shop-hint").textContent = "Wybierz element z magazynu."; return; }
+    if(qty === "" || isNaN(Number(qty)) || Number(qty) <= 0){ $("#shop-hint").textContent = "Podaj poprawną ilość."; $("#s-qty2").focus(); return; }
+    const src = items.find(i => i.id === linkId);
+    if(!src){ $("#shop-hint").textContent = "Nie znaleziono elementu."; return; }
+    shopping.push({ id: uid('sh_'), name: src.name, category: src.category, qty: Number(qty), note, linkedItemId: src.id, bought: false, created: Date.now() });
+    $("#s-qty2").value = ""; $("#s-note2").value = "";
+  }
+  $("#shop-hint").textContent = "";
+  await saveAll();
+  renderShopping();
+  toast("Dodano do listy zakupów");
+}
+
+async function toggleBought(id){
+  const s = shopping.find(x => x.id === id);
+  if(!s) return;
+  s.bought = !s.bought;
+  await saveAll();
+  renderShopping();
+}
+
+async function receiveIntoInventory(id){
+  const s = shopping.find(x => x.id === id);
+  if(!s) return;
+  if(s.linkedItemId){
+    const it = items.find(i => i.id === s.linkedItemId);
+    if(it){
+      it.qty = (Number(it.qty)||0) + (Number(s.qty)||0);
+    }else{
+      items.push({ id: uid('it_'), name: s.name, category: s.category || "Inne", qty: Number(s.qty)||0, value:"", pkg:"", loc:"", created: Date.now() });
+    }
+  }else{
+    items.push({ id: uid('it_'), name: s.name, category: s.category || "Inne", qty: Number(s.qty)||0, value:"", pkg:"", loc:"", created: Date.now() });
+  }
+  shopping = shopping.filter(x => x.id !== id);
+  await saveAll();
+  render();
+  renderShopping();
+  refreshShoppingLinkOptions();
+  toast("Dodano do stanu magazynu");
+}
+
+async function deleteShopItem(id){
+  const s = shopping.find(x => x.id === id);
+  if(!s) return;
+  if(!confirm(`Usunąć „${s.name}” z listy zakupów?`)) return;
+  shopping = shopping.filter(x => x.id !== id);
+  await saveAll();
+  renderShopping();
+  toast("Usunięto z listy zakupów");
+}
+
+function renderShopping(){
+  if(shopping.length === 0){
+    shopTableRegion.innerHTML = `<div class="empty"><div class="big">Lista zakupów jest pusta</div>Dodaj coś, czego brakuje w warsztacie.</div>`;
+    return;
+  }
+  const sorted = shopping.slice().sort((a,b) => (a.bought === b.bought) ? (b.created - a.created) : (a.bought ? 1 : -1));
+  let html = `<table><thead><tr>
+    <th class="nosort" style="width:36px;"></th>
+    <th class="nosort">Nazwa</th><th class="nosort">Kategoria</th><th class="nosort">Ilość</th>
+    <th class="nosort">Notatka</th><th class="nosort">TME</th><th class="nosort">Akcje</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(s => {
+    const color = CAT_COLORS[s.category] || "#8a9488";
+    html += `<tr class="${s.bought ? 'bought' : ''}" data-id="${s.id}">
+      <td><input type="checkbox" class="checkbox s-bought" data-id="${s.id}" ${s.bought ? "checked" : ""}></td>
+      <td><div class="item-name">${escapeHtml(s.name)}</div>${s.sourcePcbId ? `<div class="stock-hint">brak do płytki${s.linkedItemId ? " · z magazynu" : ""}</div>` : (s.linkedItemId ? `<div class="stock-hint">z magazynu</div>` : `<div class="stock-hint">nowy element</div>`)}</td>
+      <td>${s.category ? `<span class="badge" style="border-color:${color}55; color:${color}; background:${color}14;">${s.category}</span>` : "—"}</td>
+      <td class="qty">${s.qty}</td>
+      <td>${s.note ? escapeHtml(s.note) : "—"}</td>
+      <td><a class="tme-link" href="${tmeUrl(s.name)}" target="_blank" rel="noopener">Szukaj na TME ↗</a></td>
+      <td><div class="row-actions">
+        ${s.bought ? `<button class="icon-btn receive" title="Dodaj do magazynu" data-id="${s.id}">↧</button>` : ""}
+        <button class="icon-btn del s-del" title="Usuń" data-id="${s.id}">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  shopTableRegion.innerHTML = html;
+  shopTableRegion.querySelectorAll(".s-bought").forEach(cb => cb.addEventListener("change", () => toggleBought(cb.dataset.id)));
+  shopTableRegion.querySelectorAll(".receive").forEach(btn => btn.addEventListener("click", () => receiveIntoInventory(btn.dataset.id)));
+  shopTableRegion.querySelectorAll(".s-del").forEach(btn => btn.addEventListener("click", () => deleteShopItem(btn.dataset.id)));
+}
+
+/* ---------- to-do list ---------- */
+let editingTodoId = null;
+
+function renderTodos(){
+  if(todos.length === 0){
+    todoTableRegion.innerHTML = `<div class="empty"><div class="big">Brak zadań</div>Dodaj coś, co trzeba jeszcze zrobić.</div>`;
+    return;
+  }
+  const sorted = todos.slice().sort((a,b) => (a.done === b.done) ? (b.created - a.created) : (a.done ? 1 : -1));
+  const openCount = todos.filter(t => !t.done).length;
+  let html = `<table><thead><tr>
+    <th class="nosort" style="width:36px;"></th>
+    <th class="nosort">Zadanie</th><th class="nosort">Komentarz</th><th class="nosort">Akcje</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(t => {
+    html += `<tr class="${t.done ? 'bought' : ''}" data-id="${t.id}">
+      <td><input type="checkbox" class="checkbox t-done" data-id="${t.id}" ${t.done ? "checked" : ""}></td>
+      <td><div class="item-name">${escapeHtml(t.task)}</div></td>
+      <td>${t.comment ? escapeHtml(t.comment) : "—"}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn edit t-edit" title="Edytuj" data-id="${t.id}">✎</button>
+        <button class="icon-btn del t-del" title="Usuń" data-id="${t.id}">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>
+  <div style="padding:12px 14px; font-family:var(--font-mono); font-size:12px; color:var(--muted); border-top:1px solid var(--line);">
+    Podsumowanie: ${openCount} do zrobienia z ${todos.length} łącznie.
+  </div>`;
+  todoTableRegion.innerHTML = html;
+  todoTableRegion.querySelectorAll(".t-done").forEach(cb => cb.addEventListener("change", () => toggleTodoDone(cb.dataset.id)));
+  todoTableRegion.querySelectorAll(".t-edit").forEach(btn => btn.addEventListener("click", () => startEditTodo(btn.dataset.id)));
+  todoTableRegion.querySelectorAll(".t-del").forEach(btn => btn.addEventListener("click", () => deleteTodo(btn.dataset.id)));
+}
+
+async function toggleTodoDone(id){
+  const t = todos.find(x => x.id === id);
+  if(!t) return;
+  t.done = !t.done;
+  await saveAll();
+  renderTodos();
+  renderStats();
+}
+
+function startEditTodo(id){
+  const t = todos.find(x => x.id === id);
+  if(!t) return;
+  editingTodoId = id;
+  $("#t-task").value = t.task;
+  $("#t-comment").value = t.comment || "";
+  $("#btn-todo-add").textContent = "Zapisz zmiany";
+  $("#todo-hint").textContent = "";
+  window.scrollTo({ top: $("#t-task").getBoundingClientRect().top + window.scrollY - 100, behavior: "smooth" });
+}
+
+async function deleteTodo(id){
+  const t = todos.find(x => x.id === id);
+  if(!t) return;
+  if(!confirm(`Usunąć zadanie „${t.task}”?`)) return;
+  todos = todos.filter(x => x.id !== id);
+  await saveAll();
+  renderTodos();
+  renderStats();
+  toast("Usunięto zadanie");
+}
+
+async function handleTodoSave(){
+  const task = $("#t-task").value.trim();
+  const comment = $("#t-comment").value.trim();
+  if(!task){ $("#todo-hint").textContent = "Podaj treść zadania."; $("#t-task").focus(); return; }
+  if(editingTodoId){
+    const t = todos.find(x => x.id === editingTodoId);
+    Object.assign(t, { task, comment });
+    editingTodoId = null;
+    $("#btn-todo-add").textContent = "Dodaj zadanie";
+    toast("Zapisano zmiany");
+  }else{
+    todos.push({ id: uid('td_'), task, comment, done: false, created: Date.now() });
+    toast("Dodano zadanie");
+  }
+  $("#t-task").value = ""; $("#t-comment").value = ""; $("#todo-hint").textContent = "";
+  await saveAll();
+  renderTodos();
+  renderStats();
+}
+
+/* ---------- PCB projects: parts lists with reservation against inventory ---------- */
+let pcbPartMode = {}; // pcbId -> "existing" | "external"
+
+async function addPcb(){
+  const name = $("#p-name").value.trim();
+  const notes = $("#p-notes").value.trim();
+  if(!name){ $("#pcb-hint").textContent = "Podaj nazwę płytki."; $("#p-name").focus(); return; }
+  pcbs.push({ id: uid('pcb_'), name, notes, created: Date.now(), parts: [] });
+  $("#p-name").value = ""; $("#p-notes").value = ""; $("#pcb-hint").textContent = "";
+  await saveAll();
+  renderPcbs();
+  toast("Dodano płytkę");
+}
+
+async function deletePcb(pcbId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  if(!confirm(`Usunąć płytkę „${p.name}” razem z listą jej elementów? Zwolni to wszystkie zablokowane rezerwacje.`)) return;
+  pcbs = pcbs.filter(x => x.id !== pcbId);
+  await saveAll();
+  renderPcbs();
+  render();
+  toast("Usunięto płytkę");
+}
+
+function pcbAvailableOptionsHtml(){
+  const sorted = items.slice().sort((a,b) => a.name.localeCompare(b.name));
+  return sorted.length
+    ? sorted.map(it => `<option value="${it.id}">${escapeHtml(itemFullLabel(it))}</option>`).join("")
+    : `<option value="">Brak elementów w magazynie</option>`;
+}
+
+async function addPcbPart(pcbId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  const mode = pcbPartMode[pcbId] || "existing";
+  const hintEl = document.getElementById(`pcb-part-hint-${pcbId}`);
+  if(mode === "existing"){
+    const sel = document.getElementById(`pcb-part-link-${pcbId}`);
+    const qtyEl = document.getElementById(`pcb-part-qty-${pcbId}`);
+    const itemId = sel.value;
+    const qty = qtyEl.value;
+    if(!itemId){ hintEl.textContent = "Wybierz element z magazynu."; return; }
+    if(qty === "" || isNaN(Number(qty)) || Number(qty) <= 0){ hintEl.textContent = "Podaj poprawną ilość."; return; }
+    const src = items.find(i => i.id === itemId);
+    p.parts.push({ id: uid('pp_'), itemId: src ? src.id : null, name: src ? src.name : "(nieznany)", qtyNeeded: Number(qty), reserved: false });
+    qtyEl.value = "";
+  }else{
+    const nameEl = document.getElementById(`pcb-part-name-${pcbId}`);
+    const qtyEl = document.getElementById(`pcb-part-qty-ext-${pcbId}`);
+    const name = nameEl.value.trim();
+    const qty = qtyEl.value;
+    if(!name){ hintEl.textContent = "Podaj nazwę elementu."; return; }
+    if(qty === "" || isNaN(Number(qty)) || Number(qty) <= 0){ hintEl.textContent = "Podaj poprawną ilość."; return; }
+    p.parts.push({ id: uid('pp_'), itemId: null, name, qtyNeeded: Number(qty), reserved: false });
+    nameEl.value = ""; qtyEl.value = "";
+  }
+  hintEl.textContent = "";
+  await saveAll();
+  renderPcbs();
+  render(); // reserved figures don't change yet (reserved defaults false) but keep in sync
+}
+
+async function addShortfallToShopping(pcbId, partId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  const part = p.parts.find(x => x.id === partId);
+  if(!part) return;
+  const sf = pcbShortfalls(p).find(s => s.partId === partId);
+  if(!sf) return;
+  const existing = shopping.find(s => !s.bought && s.sourcePcbId === pcbId && s.sourcePartId === partId);
+  if(existing){
+    existing.qty = sf.missingQty;
+    toast("Zaktualizowano ilość na liście zakupów");
+  }else{
+    const srcItem = part.itemId ? items.find(i => i.id === part.itemId) : null;
+    shopping.push({
+      id: uid('sh_'), name: sf.name, category: srcItem ? srcItem.category : "",
+      qty: sf.missingQty, note: `do płytki: ${p.name}`, linkedItemId: part.itemId || null,
+      sourcePcbId: pcbId, sourcePartId: partId, bought: false, created: Date.now()
+    });
+    toast("Dodano brak do listy zakupów");
+  }
+  await saveAll();
+  renderShopping();
+}
+
+async function addAllShortfallsToShopping(pcbId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  const shortfalls = pcbShortfalls(p);
+  if(shortfalls.length === 0){ toast("Brak braków — wszystko pokryte z magazynu"); return; }
+  let added = 0, updated = 0;
+  shortfalls.forEach(sf => {
+    const part = p.parts.find(x => x.id === sf.partId);
+    const existing = shopping.find(s => !s.bought && s.sourcePcbId === pcbId && s.sourcePartId === sf.partId);
+    if(existing){ existing.qty = sf.missingQty; updated++; return; }
+    const srcItem = part.itemId ? items.find(i => i.id === part.itemId) : null;
+    shopping.push({
+      id: uid('sh_'), name: sf.name, category: srcItem ? srcItem.category : "",
+      qty: sf.missingQty, note: `do płytki: ${p.name}`, linkedItemId: part.itemId || null,
+      sourcePcbId: pcbId, sourcePartId: sf.partId, bought: false, created: Date.now()
+    });
+    added++;
+  });
+  await saveAll();
+  renderShopping();
+  toast(`Dodano ${added} brak(ów)${updated ? `, zaktualizowano ${updated}` : ""} do listy zakupów`);
+}
+
+function renderPcbShortfalls(p){
+  const shortfalls = pcbShortfalls(p);
+  if(shortfalls.length === 0){
+    return `<div class="info-note" style="margin:16px; border-top:1px solid var(--line); padding-top:12px;">Wszystkie elementy tej płytki są pokryte z magazynu. 🎉</div>`;
+  }
+  let html = `<div style="padding:16px 16px 16px; border-top:1px solid var(--line);">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <div class="breakdown-title" style="margin:0;">Braki (${shortfalls.length})</div>
+      <button class="btn-mini" data-pcb-shortfall-all="${p.id}">Dodaj wszystkie do listy zakupów</button>
+    </div>`;
+  shortfalls.forEach(sf => {
+    html += `<div class="breakdown-row" style="max-width:520px;">
+      <span>${escapeHtml(sf.name)} <span style="color:var(--muted);">(potrzeba ${sf.qtyNeeded}, brakuje ${sf.missingQty})</span></span>
+      <button class="btn-mini" data-pcb-shortfall-add="${p.id}" data-part-id="${sf.partId}">+ do zakupów</button>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+async function togglePartReserved(pcbId, partId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  const part = p.parts.find(x => x.id === partId);
+  if(!part) return;
+  if(!part.itemId){ toast("Ten element jest spoza magazynu — nie ma czego blokować."); return; }
+  if(!part.reserved){
+    const it = items.find(i => i.id === part.itemId);
+    const alreadyReserved = reservedQtyForItem(part.itemId);
+    const available = it ? (it.qty - alreadyReserved) : 0;
+    if(!it || available < part.qtyNeeded){
+      toast(`Za mało na stanie: dostępne ${Math.max(0,available)}, potrzeba ${part.qtyNeeded}`);
+      return;
+    }
+  }
+  part.reserved = !part.reserved;
+  await saveAll();
+  renderPcbs();
+  render();
+  toast(part.reserved ? "Zablokowano element do tej płytki" : "Odblokowano element");
+}
+
+async function deletePcbPart(pcbId, partId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  p.parts = p.parts.filter(x => x.id !== partId);
+  await saveAll();
+  renderPcbs();
+  render();
+}
+
+function renderPcbs(){
+  const listEl = $("#pcb-list");
+  if(pcbs.length === 0){
+    listEl.innerHTML = `<div class="table-wrap"><div class="empty"><div class="big">Brak płytek</div>Dodaj płytkę powyżej, żeby zacząć przypisywać do niej elementy z magazynu.</div></div>`;
+    return;
+  }
+  let html = "";
+  pcbs.forEach(p => {
+    const mode = pcbPartMode[p.id] || "existing";
+    const totalParts = p.parts.length;
+    const reservedParts = p.parts.filter(pt => pt.reserved).length;
+    html += `<div class="table-wrap pcb-card" style="margin-bottom:16px;">
+      <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel-2); flex-wrap:wrap;">
+        <div style="flex:1; min-width:180px;">
+          <div class="item-name" style="font-family:var(--font-display); font-size:15px;">${escapeHtml(p.name)}</div>
+          ${p.notes ? `<div class="item-loc">${escapeHtml(p.notes)}</div>` : ""}
+        </div>
+        <span class="hint">${reservedParts}/${totalParts} zablokowanych</span>
+        <button class="btn-mini" data-pcb-bom-btn="${p.id}">⇪ Importuj BOM</button>
+        <input type="file" id="pcb-bom-file-${p.id}" accept=".csv,.txt,.tsv,text/csv,text/plain" style="display:none;">
+        <button class="icon-btn del" title="Usuń płytkę" data-pcb-del="${p.id}">✕</button>
+      </div>
+      <div class="info-note" style="margin:14px 16px 0;">Import BOM rozpoznaje kolumny <b>Value</b>/Wartość, <b>Footprint</b>/Obudowa, <b>Qty</b>/Ilość, <b>Reference</b> (np. eksport z KiCad, Eagle, Altium — CSV, TSV, ze średnikiem albo tabulatorem). Elementy o pasującej nazwie łączą się z magazynem automatycznie, reszta trafia jako „spoza magazynu”.</div>
+      <div style="padding:14px 16px; border-bottom:1px solid var(--line);">
+        <div class="mode-toggle">
+          <button class="mode-btn ${mode==='existing'?'active':''}" data-pcb-mode="${p.id}" data-mode-val="existing">Z magazynu</button>
+          <button class="mode-btn ${mode==='external'?'active':''}" data-pcb-mode="${p.id}" data-mode-val="external">Spoza magazynu</button>
+        </div>
+        ${mode === "existing" ? `
+        <div class="grid-form" style="grid-template-columns: 2fr 1fr auto;">
+          <div class="field"><label>Element z magazynu</label><select id="pcb-part-link-${p.id}">${pcbAvailableOptionsHtml()}</select></div>
+          <div class="field"><label>Ilość potrzebna</label><input type="number" min="1" step="1" id="pcb-part-qty-${p.id}" placeholder="1"></div>
+          <div class="field" style="align-self:end;"><button class="btn btn-primary" data-pcb-addpart="${p.id}">Dodaj do listy</button></div>
+        </div>` : `
+        <div class="grid-form" style="grid-template-columns: 2fr 1fr auto;">
+          <div class="field"><label>Nazwa elementu</label><input type="text" id="pcb-part-name-${p.id}" placeholder="np. rezonator kwarcowy 16MHz"></div>
+          <div class="field"><label>Ilość potrzebna</label><input type="number" min="1" step="1" id="pcb-part-qty-ext-${p.id}" placeholder="1"></div>
+          <div class="field" style="align-self:end;"><button class="btn btn-primary" data-pcb-addpart="${p.id}">Dodaj do listy</button></div>
+        </div>`}
+        <div class="hint" id="pcb-part-hint-${p.id}"></div>
+      </div>
+      ${renderPcbPartsTable(p)}
+      ${renderPcbShortfalls(p)}
+    </div>`;
+  });
+  listEl.innerHTML = html;
+
+  listEl.querySelectorAll("[data-pcb-del]").forEach(btn => btn.addEventListener("click", () => deletePcb(btn.dataset.pcbDel)));
+  listEl.querySelectorAll("[data-pcb-mode]").forEach(btn => btn.addEventListener("click", () => {
+    pcbPartMode[btn.dataset.pcbMode] = btn.dataset.modeVal;
+    renderPcbs();
+  }));
+  listEl.querySelectorAll("[data-pcb-addpart]").forEach(btn => btn.addEventListener("click", () => addPcbPart(btn.dataset.pcbAddpart)));
+  listEl.querySelectorAll("[data-pcb-reserve]").forEach(btn => btn.addEventListener("click", () => togglePartReserved(btn.dataset.pcbId, btn.dataset.pcbReserve)));
+  listEl.querySelectorAll("[data-pcb-partdel]").forEach(btn => btn.addEventListener("click", () => deletePcbPart(btn.dataset.pcbId, btn.dataset.pcbPartdel)));
+  listEl.querySelectorAll("[data-pcb-shortfall-add]").forEach(btn => btn.addEventListener("click", () => addShortfallToShopping(btn.dataset.pcbShortfallAdd, btn.dataset.partId)));
+  listEl.querySelectorAll("[data-pcb-shortfall-all]").forEach(btn => btn.addEventListener("click", () => addAllShortfallsToShopping(btn.dataset.pcbShortfallAll)));
+  listEl.querySelectorAll("[data-pcb-bom-btn]").forEach(btn => btn.addEventListener("click", () => {
+    const inp = document.getElementById(`pcb-bom-file-${btn.dataset.pcbBomBtn}`);
+    if(inp) inp.click();
+  }));
+  listEl.querySelectorAll("input[id^='pcb-bom-file-']").forEach(inp => inp.addEventListener("change", async (e) => {
+    const pcbId = inp.id.replace("pcb-bom-file-", "");
+    const file = e.target.files[0];
+    if(file) await handleBomImportFile(pcbId, file);
+    e.target.value = "";
+  }));
+}
+
+function renderPcbPartsTable(p){
+  if(!p.parts || p.parts.length === 0){
+    return `<div class="empty" style="padding:24px;">Brak elementów na liście tej płytki.</div>`;
+  }
+  let html = `<table><thead><tr>
+    <th class="nosort">Element</th><th class="nosort">Źródło</th><th class="nosort">Ilość</th><th class="nosort">Status</th><th class="nosort">Akcje</th>
+  </tr></thead><tbody>`;
+  p.parts.forEach(part => {
+    let statusHtml;
+    if(!part.itemId){
+      statusHtml = `<span class="badge" style="border-color:#8a948855; color:#8a9488; background:#8a948814;">spoza magazynu</span>`;
+    }else if(part.reserved){
+      statusHtml = `<span class="badge" style="border-color:#6fa97e55; color:#6fa97e; background:#6fa97e14;">zablokowane</span>`;
+    }else{
+      const it = items.find(i => i.id === part.itemId);
+      const avail = it ? (it.qty - reservedQtyForItem(part.itemId)) : 0;
+      statusHtml = `<span class="badge" style="border-color:#c97a4655; color:#c97a46; background:#c97a4614;">niezablokowane${it ? ` (dost.: ${avail})` : ""}</span>`;
+    }
+    html += `<tr>
+      <td><div class="item-name">${escapeHtml(part.name)}</div>${part.refs ? `<div class="item-loc">${escapeHtml(part.refs)}</div>` : ""}</td>
+      <td>${part.itemId ? "magazyn" : "zewnętrzne"}</td>
+      <td class="qty">${part.qtyNeeded}</td>
+      <td>${statusHtml}</td>
+      <td><div class="row-actions">
+        ${part.itemId ? `<button class="icon-btn" title="${part.reserved ? 'Odblokuj' : 'Zablokuj'}" data-pcb-id="${p.id}" data-pcb-reserve="${part.id}">${part.reserved ? "🔓" : "🔒"}</button>` : ""}
+        <button class="icon-btn del" title="Usuń" data-pcb-id="${p.id}" data-pcb-partdel="${part.id}">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  return html;
+}
+
+function switchTab(name){
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+}
+
+/* ---------- init ---------- */
+async function init(){
+  fillCategorySelect($("#f-cat"));
+  fillCategorySelect($("#filter-cat"), { allowAll: true });
+  fillCategorySelect($("#s-cat"), { allowNone: true });
+  wireCategoryDot($("#f-cat"), $("#f-cat-dot"));
+  wireCategoryDot($("#filter-cat"), $("#filter-cat-dot"), "#5f6b60");
+  wireCategoryDot($("#s-cat"), $("#s-cat-dot"));
+
+  clearForm();
+
+  await initStorageMode();
+  renderStorageBar();
+  await loadAll();
+  render();
+  renderShopping();
+  refreshShoppingLinkOptions();
+  renderTodos();
+  renderPcbs();
+
+  $("#btn-todo-add").addEventListener("click", handleTodoSave);
+  ["t-task","t-comment"].forEach(id => $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handleTodoSave(); }));
+
+  $("#btn-pcb-add").addEventListener("click", addPcb);
+  ["p-name","p-notes"].forEach(id => $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") addPcb(); }));
+
+  $("#btn-save").addEventListener("click", handleSave);
+  $("#btn-cancel").addEventListener("click", clearForm);
+  $("#search").addEventListener("input", (e) => { searchTerm = e.target.value; renderTable(); });
+  $("#filter-cat").addEventListener("change", (e) => { activeCategory = e.target.value || null; renderTable(); });
+  ["f-name","f-qty","f-val","f-pkg","f-loc"].forEach(id => {
+    $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handleSave(); });
+  });
+
+  document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+
+  $("#mode-new").addEventListener("click", () => setShopMode("new"));
+  $("#mode-existing").addEventListener("click", () => setShopMode("existing"));
+  $("#btn-shop-add").addEventListener("click", handleShopAdd);
+  ["s-name","s-qty","s-note"].forEach(id => $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handleShopAdd(); }));
+  ["s-qty2","s-note2"].forEach(id => $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handleShopAdd(); }));
+
+  $("#btn-import-inv").addEventListener("click", () => $("#import-inv-file").click());
+  $("#import-inv-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if(file) await handleInventoryImportFile(file);
+    e.target.value = "";
+  });
+  $("#btn-import-shop").addEventListener("click", () => $("#import-shop-file").click());
+  $("#import-shop-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if(file) await handleShoppingImportFile(file);
+    e.target.value = "";
+  });
+}
+
+init();
+</script>
+</body>
+</html>

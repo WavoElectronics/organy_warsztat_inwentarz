@@ -197,6 +197,80 @@
   .tab-btn .tab-icon{ font-size:17px; }
   .tab-panel{ display:none; }
   .tab-panel.active{ display:block; }
+  /* ---------- 3D print module ---------- */
+  .print-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap:16px; }
+  .print-card{ background: var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+  .print-card.done{ border-color: rgba(111,169,126,0.45); }
+  .print-top{ display:flex; gap:14px; padding:14px; }
+  .print-thumb{
+    width:112px; height:112px; flex-shrink:0; border-radius:10px; border:1px solid var(--line);
+    background: radial-gradient(circle at 50% 40%, #1c2a1e 0%, var(--bg-alt) 70%);
+    display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; cursor:default;
+  }
+  .print-thumb.has-model{ cursor:pointer; }
+  .print-thumb.has-model:hover{ border-color: var(--copper); }
+  .print-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .thumb-ph{ font-family: var(--font-mono); font-size:10.5px; color: var(--muted-2); text-align:center; padding:8px; line-height:1.4; }
+  .thumb-ph .ico{ font-size:26px; display:block; margin-bottom:4px; opacity:.6; }
+  .badge-3d{
+    position:absolute; right:6px; bottom:6px; font-family: var(--font-mono); font-size:10px; font-weight:600;
+    background: rgba(15,22,17,0.85); color: var(--copper-bright); border:1px solid var(--copper); border-radius:5px; padding:2px 6px;
+  }
+  .print-info{ flex:1; min-width:0; }
+  .print-name{ font-family: var(--font-display); font-weight:600; font-size:15.5px; color: var(--cream); margin-bottom:5px; word-break:break-word; }
+  .print-meta{ font-family: var(--font-mono); font-size:11.5px; color: var(--muted); margin-top:6px; line-height:1.5; }
+  .progress{ height:7px; background: var(--bg-alt); border:1px solid var(--line); border-radius:99px; overflow:hidden; margin:10px 0 6px; }
+  .progress > span{ display:block; height:100%; background: linear-gradient(90deg, var(--copper), var(--copper-bright)); border-radius:99px; transition: width .25s; }
+  .print-card.done .progress > span{ background: linear-gradient(90deg, #4f8d60, var(--success)); }
+  .print-count{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-family: var(--font-mono); font-size:12.5px; color: var(--cream); }
+  .print-count .todo{ color: var(--copper-bright); }
+  .print-card.done .print-count .todo{ color: var(--success); }
+  .qty-ctrl{ display:inline-flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; }
+  .qty-ctrl button{ background: var(--bg-alt); border:none; color: var(--cream); width:30px; height:28px; cursor:pointer; font-size:15px; font-family: var(--font-mono); }
+  .qty-ctrl button:hover{ background: rgba(201,122,70,0.15); color: var(--copper-bright); }
+  .qty-ctrl button + button{ border-left:1px solid var(--line); }
+  .print-actions{ display:flex; align-items:center; gap:6px; padding:0 14px 12px; flex-wrap:wrap; }
+  .print-actions .sp{ flex:1; }
+  .comp-toggle{
+    width:100%; text-align:left; background: var(--panel-2); border:none; border-top:1px solid var(--line);
+    color: var(--cream); padding:10px 14px; cursor:pointer; font-family: var(--font-mono); font-size:12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .comp-toggle:hover{ color: var(--copper-bright); }
+  .comp-toggle .warn{ color: var(--danger-bright); }
+  .comp-toggle .ok{ color: var(--success); }
+  .comp-body{ padding:12px 14px 14px; border-top:1px solid var(--line); background: var(--bg-alt); }
+  .comp-row{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13px; }
+  .comp-row:last-of-type{ border-bottom:none; }
+  .comp-row .cname{ flex:1; min-width:0; }
+  .comp-row .cname small{ display:block; font-family: var(--font-mono); font-size:11px; color: var(--muted); margin-top:2px; }
+  .comp-form{ display:grid; grid-template-columns: 1fr 72px auto; gap:8px; margin-top:10px; align-items:end; }
+  .comp-form select, .comp-form input{
+    width:100%; background: var(--panel); border:1px solid var(--line); border-radius:7px; padding:8px 9px;
+    color: var(--cream); font-size:13px; outline:none; font-family: var(--font-body);
+  }
+  .comp-form select:focus, .comp-form input:focus{ border-color: var(--copper); }
+  .comp-form .btn{ padding:8px 12px; font-size:12.5px; }
+  .print-toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .print-toolbar .search{ flex:1; min-width:180px; }
+  .print-toolbar select{ background: var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; color: var(--cream); font-size:14px; outline:none; min-width:190px; }
+  .stl-pick{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .stl-pick .fname{ font-family: var(--font-mono); font-size:12px; color: var(--muted); }
+
+  /* 3D viewer modal */
+  .viewer-modal{ position:fixed; inset:0; background: rgba(5,9,6,0.78); backdrop-filter: blur(3px); display:none; align-items:center; justify-content:center; z-index:100; padding:18px; }
+  .viewer-modal.open{ display:flex; }
+  .viewer-box{ width:min(960px, 100%); height:min(680px, 100%); background: var(--panel); border:1px solid var(--line); border-radius:16px; display:flex; flex-direction:column; overflow:hidden; }
+  .viewer-head{ display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); background: var(--panel-2); }
+  .viewer-head .vt{ flex:1; font-family: var(--font-display); font-weight:600; font-size:15px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .viewer-canvas-wrap{ flex:1; position:relative; background: radial-gradient(circle at 50% 35%, #1d2c1f 0%, #0c120d 75%); touch-action:none; cursor:grab; }
+  .viewer-canvas-wrap:active{ cursor:grabbing; }
+  .viewer-canvas-wrap canvas{ display:block; width:100%; height:100%; }
+  .viewer-status{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); font-size:13px; color: var(--muted); pointer-events:none; text-align:center; padding:20px; }
+  .viewer-foot{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 16px; border-top:1px solid var(--line); font-family: var(--font-mono); font-size:12px; color: var(--muted); }
+  .viewer-foot .sp{ flex:1; }
+  .btn-mini.on{ background: var(--copper); color:#1a1006; }
+
 </style>
 </head>
 <body>
@@ -213,6 +287,7 @@
   <div class="tabs" id="tabs">
     <button class="tab-btn active" data-tab="magazyn"><span class="tab-icon">📦</span> Magazyn</button>
     <button class="tab-btn" data-tab="projekty"><span class="tab-icon">🛠️</span> Projekty</button>
+    <button class="tab-btn" data-tab="druk3d"><span class="tab-icon">🖨️</span> Druk 3D</button>
   </div>
 
   <div class="tab-panel active" id="tab-magazyn">
@@ -361,6 +436,61 @@
   </div>
   <div class="table-wrap"><div id="todo-table-region"><div class="loading-state">Wczytywanie zadań…</div></div></div>
   </div>
+
+  <div class="tab-panel" id="tab-druk3d">
+  <div class="panel">
+    <h2 id="print-form-title">Dodaj wydruk 3D <span class="sub">rejestry, etykiety, styki, mocowania…</span></h2>
+    <div class="grid-form" style="grid-template-columns: 1.5fr 1fr 0.6fr 0.6fr;">
+      <div class="field"><label for="pr-name">Nazwa *</label><input id="pr-name" type="text" placeholder="np. Gałka rejestru"></div>
+      <div class="field"><label for="pr-cat">Kategoria</label><input id="pr-cat" type="text" list="pr-cat-list" placeholder="Rejestry, Etykiety, Styki…"><datalist id="pr-cat-list"></datalist></div>
+      <div class="field"><label for="pr-need">Potrzebne</label><input id="pr-need" type="number" min="0" step="1" placeholder="0"></div>
+      <div class="field"><label for="pr-have">Mam</label><input id="pr-have" type="number" min="0" step="1" placeholder="0"></div>
+    </div>
+    <div class="grid-form" style="grid-template-columns: 1fr 1fr 2fr; margin-top:12px;">
+      <div class="field"><label for="pr-mat">Materiał</label><input id="pr-mat" type="text" list="pr-mat-list" placeholder="PLA, PETG…">
+        <datalist id="pr-mat-list"><option value="PLA"><option value="PLA+"><option value="PETG"><option value="ABS"><option value="ASA"><option value="TPU"><option value="Nylon (PA)"><option value="Żywica"></datalist></div>
+      <div class="field"><label for="pr-color">Kolor</label><input id="pr-color" type="text" placeholder="np. kość słoniowa"></div>
+      <div class="field"><label for="pr-notes">Notatka</label><input id="pr-notes" type="text" placeholder="np. 0.2 mm, 3 obwody, 20% infill"></div>
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label>Model 3D (STL)</label>
+      <div class="stl-pick">
+        <button class="btn btn-ghost" id="btn-pr-stl" type="button">📎 Wybierz plik STL</button>
+        <input type="file" id="pr-stl" accept=".stl,model/stl,application/sla" style="display:none;">
+        <span class="fname" id="pr-stl-name">nie wybrano — można dodać później</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-print-save">Dodaj wydruk</button>
+      <button class="btn btn-ghost" id="btn-print-cancel" style="display:none;">Anuluj edycję</button>
+      <span class="hint" id="print-hint"></span>
+    </div>
+    <div class="info-note">Do każdego wydruku możesz dopisać <b>elementy dodatkowe</b> (np. sprężynki, magnesy, śrubki, styki) — z magazynu albo spoza niego, z ilością na 1 sztukę. Aplikacja liczy, ile ich trzeba łącznie, pokazuje braki i może dorzucić je do listy zakupów. Kliknij miniaturę, żeby obejrzeć model w 3D.</div>
+  </div>
+
+  <div class="print-toolbar">
+    <div class="search"><input type="text" id="print-search" placeholder="Szukaj wydruku…"></div>
+    <select id="print-filter-cat"></select>
+  </div>
+  <div id="print-list"><div class="table-wrap"><div class="loading-state">Wczytywanie wydruków…</div></div></div>
+  </div>
+</div>
+
+<div class="viewer-modal" id="viewer-modal">
+  <div class="viewer-box">
+    <div class="viewer-head">
+      <div class="vt" id="viewer-title">Podgląd 3D</div>
+      <button class="btn-mini" id="viewer-auto" type="button">⟳ Auto-obrót</button>
+      <button class="btn-mini" id="viewer-wire" type="button">◇ Siatka</button>
+      <button class="btn-mini" id="viewer-reset" type="button">⌂ Reset</button>
+      <button class="icon-btn" id="viewer-close" type="button" title="Zamknij">✕</button>
+    </div>
+    <div class="viewer-canvas-wrap" id="viewer-wrap"><div class="viewer-status" id="viewer-status">Wczytywanie modelu…</div></div>
+    <div class="viewer-foot">
+      <span id="viewer-dims"></span><span class="sp"></span>
+      <span>przeciągnij: obrót · kółko / szczypanie: zoom</span>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -397,6 +527,7 @@ let items = [];
 let shopping = [];
 let todos = [];
 let pcbs = []; // {id, name, notes, created, parts:[{id, itemId|null, name, qtyNeeded, reserved}]}
+let prints = []; // {id, name, category, qtyNeeded, qtyHave, material, color, notes, stl, thumb, dims, components:[{id, itemId|null, name, qtyPer, reserved}]}
 let storageMode = "local"; // "claude" | "gdrive" | "fsapi" | "local"
 let fsHandle = null;
 let fsReady = false;
@@ -654,8 +785,12 @@ async function handleBomImportFile(pcbId, file){
 }
 function idbOpen(){
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open("workshop-inventory-db", 1);
-    req.onupgradeneeded = () => req.result.createObjectStore("handles");
+    const req = indexedDB.open("workshop-inventory-db", 2);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains("handles")) db.createObjectStore("handles");
+      if(!db.objectStoreNames.contains("stl")) db.createObjectStore("stl");
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
@@ -792,7 +927,7 @@ async function connectGoogleDriveFlow(){
     if(!ok){ toast("Nie udało się zalogować do Google"); return; }
     await driveFindOrCreateFile();
     if(pendingLocalChanges){
-      await driveWriteRaw(JSON.stringify({ items, shopping, todos, pcbs }, null, 2));
+      await driveWriteRaw(JSON.stringify({ items, shopping, todos, pcbs, prints }, null, 2));
       pendingLocalChanges = false;
       toast("Zsynchronizowano zmiany z Dyskiem Google");
     }else{
@@ -804,6 +939,7 @@ async function connectGoogleDriveFlow(){
     driveReady = true;
     localStorage.setItem("preferredBackend", "gdrive");
     render(); renderShopping(); renderTodos(); renderPcbs(); renderStorageBar(); refreshShoppingLinkOptions();
+    syncPendingStlUploads();
   }catch(e){
     toast("Nie udało się połączyć z Google Drive");
   }
@@ -936,7 +1072,7 @@ function renderStorageBar(){
 
 /* ---------- low level read/write per backend ---------- */
 async function writeToFile(){
-  const payload = JSON.stringify({ items, shopping, todos, pcbs }, null, 2);
+  const payload = JSON.stringify({ items, shopping, todos, pcbs, prints }, null, 2);
   if(storageMode === "claude"){
     try{
       const res = await window.storage.set(STORAGE_KEY, payload, false);
@@ -989,12 +1125,13 @@ async function readFromFile(){
 }
 
 function applyLoadedData(data){
-  if(!data){ items = []; shopping = []; todos = []; pcbs = []; return; }
-  if(Array.isArray(data)){ items = data; shopping = []; todos = []; pcbs = []; return; } // legacy format
+  if(!data){ items = []; shopping = []; todos = []; pcbs = []; prints = []; return; }
+  if(Array.isArray(data)){ items = data; shopping = []; todos = []; pcbs = []; prints = []; return; } // legacy format
   items = Array.isArray(data.items) ? data.items : [];
   shopping = Array.isArray(data.shopping) ? data.shopping : [];
   todos = Array.isArray(data.todos) ? data.todos : [];
   pcbs = Array.isArray(data.pcbs) ? data.pcbs : [];
+  prints = Array.isArray(data.prints) ? data.prints : [];
 }
 
 // Top-level load: on fresh page load, prefer the real backend if ready;
@@ -1021,11 +1158,11 @@ async function saveAll(){
   if(storageMode === "gdrive" && driveReady && driveFileId){ await writeToFile(); return; }
   if((storageMode === "fsapi" && (!fsHandle || !fsReady)) || (storageMode === "gdrive" && (!driveReady || !driveFileId))){
     pendingLocalChanges = true;
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs })); }catch(e){}
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints })); }catch(e){}
     renderStorageBar();
     return;
   }
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs })); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints })); }catch(e){}
 }
 
 /* ---------- category dot selects ---------- */
@@ -1053,12 +1190,18 @@ function reservedQtyForItem(itemId){
   pcbs.forEach(p => (p.parts||[]).forEach(part => {
     if(part.itemId === itemId && part.reserved) sum += Number(part.qtyNeeded)||0;
   }));
+  prints.forEach(pr => (pr.components||[]).forEach(c => {
+    if(c.itemId === itemId && c.reserved) sum += compTotal(pr, c);
+  }));
   return sum;
 }
 function reservationBreakdownForItem(itemId){
   const list = [];
   pcbs.forEach(p => (p.parts||[]).forEach(part => {
     if(part.itemId === itemId && part.reserved) list.push({ pcbId: p.id, pcbName: p.name, qty: Number(part.qtyNeeded)||0 });
+  }));
+  prints.forEach(pr => (pr.components||[]).forEach(c => {
+    if(c.itemId === itemId && c.reserved) list.push({ pcbId: pr.id, pcbName: "🖨️ " + pr.name, qty: compTotal(pr, c) });
   }));
   return list;
 }
@@ -1087,12 +1230,14 @@ function renderStats(){
   const catCount = new Set(items.map(it=>it.category)).size;
   const toBuy = shopping.filter(s => !s.bought).length;
   const openTodos = todos.filter(t => !t.done).length;
+  const toPrint = prints.reduce((sum, pr) => sum + printToDo(pr), 0);
   $("#stats").innerHTML = `
     <div class="stat"><div class="num">${totalItems}</div><div class="lbl">Pozycji w magazynie</div></div>
     <div class="stat"><div class="num">${totalQty}</div><div class="lbl">Sztuk łącznie</div></div>
     <div class="stat"><div class="num">${catCount}</div><div class="lbl">Kategorii w użyciu</div></div>
     <div class="stat"><div class="num">${toBuy}</div><div class="lbl">Do kupienia</div></div>
     <div class="stat"><div class="num">${openTodos}</div><div class="lbl">Zadań otwartych</div></div>
+    <div class="stat"><div class="num">${toPrint}</div><div class="lbl">Sztuk do wydruku</div></div>
   `;
 }
 
@@ -1181,7 +1326,7 @@ function renderTable(){
   }));
 }
 
-function render(){ renderStats(); renderTable(); }
+function render(){ renderStats(); renderTable(); if(typeof renderPrints === "function") renderPrints(); }
 
 function clearForm(){
   $("#f-name").value = ""; $("#f-cat").value = CATEGORIES[0]; $("#f-qty").value = "";
@@ -1213,6 +1358,9 @@ async function deleteItem(id){
   items = items.filter(i => i.id !== id);
   pcbs.forEach(p => (p.parts||[]).forEach(part => {
     if(part.itemId === id){ part.itemId = null; part.reserved = false; part.name = part.name + " (usunięty z magazynu)"; }
+  }));
+  prints.forEach(pr => (pr.components||[]).forEach(c => {
+    if(c.itemId === id){ c.itemId = null; c.reserved = false; c.name = c.name + " (usunięty z magazynu)"; }
   }));
   await saveAll();
   render();
@@ -1361,7 +1509,7 @@ function renderShopping(){
     const color = CAT_COLORS[s.category] || "#8a9488";
     html += `<tr class="${s.bought ? 'bought' : ''}" data-id="${s.id}">
       <td><input type="checkbox" class="checkbox s-bought" data-id="${s.id}" ${s.bought ? "checked" : ""}></td>
-      <td><div class="item-name">${escapeHtml(s.name)}</div>${s.sourcePcbId ? `<div class="stock-hint">brak do płytki${s.linkedItemId ? " · z magazynu" : ""}</div>` : (s.linkedItemId ? `<div class="stock-hint">z magazynu</div>` : `<div class="stock-hint">nowy element</div>`)}</td>
+      <td><div class="item-name">${escapeHtml(s.name)}</div>${s.sourcePrintId ? `<div class="stock-hint">brak do wydruku 3D${s.linkedItemId ? " · z magazynu" : ""}</div>` : s.sourcePcbId ? `<div class="stock-hint">brak do płytki${s.linkedItemId ? " · z magazynu" : ""}</div>` : (s.linkedItemId ? `<div class="stock-hint">z magazynu</div>` : `<div class="stock-hint">nowy element</div>`)}</td>
       <td>${s.category ? `<span class="badge" style="border-color:${color}55; color:${color}; background:${color}14;">${s.category}</span>` : "—"}</td>
       <td class="qty">${s.qty}</td>
       <td>${s.note ? escapeHtml(s.note) : "—"}</td>
@@ -1789,6 +1937,696 @@ function switchTab(name){
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
 }
 
+/* =====================================================================
+   3D PRINT MODULE — printed parts, extra components, STL storage + viewer
+   ===================================================================== */
+const PRINT_CATEGORIES = ["Rejestry","Etykiety","Styki","Obudowy","Mocowania","Inne"];
+const PRINT_CAT_COLORS = {
+  "Rejestry": "#c97a46", "Etykiety": "#e2b04a", "Styki": "#7fa8d1",
+  "Obudowy": "#6fa97e", "Mocowania": "#b57fd1", "Inne": "#8a9488"
+};
+const THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+
+let editingPrintId = null;
+let pendingStlFile = null;
+let printSearch = "";
+let printFilterCat = "";
+let printCompMode = {};          // printId -> "existing" | "external"
+let expandedPrints = new Set();  // printIds with the components section open
+
+function printToDo(pr){ return Math.max(0, (Number(pr.qtyNeeded)||0) - (Number(pr.qtyHave)||0)); }
+function compTotal(pr, c){ return (Number(c.qtyPer)||0) * (Number(pr.qtyNeeded)||0); }
+function printCatColor(cat){ return PRINT_CAT_COLORS[cat] || "#8a9488"; }
+
+function printCompShortfalls(pr){
+  const list = [];
+  (pr.components||[]).forEach(c => {
+    const total = compTotal(pr, c);
+    if(total <= 0) return;
+    if(!c.itemId){ list.push({ compId: c.id, name: c.name, total, missing: total, itemId: null }); return; }
+    if(c.reserved) return;
+    const it = items.find(i => i.id === c.itemId);
+    const avail = it ? Math.max(0, it.qty - reservedQtyForItem(c.itemId)) : 0;
+    const missing = Math.max(0, total - avail);
+    if(missing > 0) list.push({ compId: c.id, name: c.name, total, missing, itemId: c.itemId });
+  });
+  return list;
+}
+
+/* ---------- IndexedDB store for STL binaries (local cache) ---------- */
+async function stlStoreOp(mode, fn){
+  const db = await idbOpen();
+  return await new Promise((resolve, reject) => {
+    const tx = db.transaction("stl", mode);
+    const req = fn(tx.objectStore("stl"));
+    tx.oncomplete = () => resolve(req ? req.result : true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function stlPut(key, buf){ try{ await stlStoreOp("readwrite", st => st.put(buf, key)); return true; }catch(e){ return false; } }
+async function stlGet(key){ try{ return (await stlStoreOp("readonly", st => st.get(key))) || null; }catch(e){ return null; } }
+async function stlDel(key){ try{ await stlStoreOp("readwrite", st => st.delete(key)); }catch(e){} }
+
+/* ---------- Google Drive: binary STL files ---------- */
+async function driveUploadBinary(name, buf){
+  const headers = { Authorization: "Bearer " + driveAccessToken };
+  const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST", headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, mimeType: "model/stl" })
+  });
+  if(!createRes.ok) throw new Error("create failed");
+  const created = await createRes.json();
+  const up = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${created.id}?uploadType=media`, {
+    method: "PATCH", headers: { ...headers, "Content-Type": "application/octet-stream" }, body: buf
+  });
+  if(!up.ok) throw new Error("upload failed");
+  return created.id;
+}
+async function driveDownloadBinary(fileId){
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { Authorization: "Bearer " + driveAccessToken }
+  });
+  if(!res.ok) throw new Error("download failed");
+  return await res.arrayBuffer();
+}
+async function driveTrashFile(fileId){
+  // moved to Drive trash (recoverable), never hard-deleted
+  try{
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: "PATCH",
+      headers: { Authorization: "Bearer " + driveAccessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ trashed: true })
+    });
+  }catch(e){}
+}
+function driveUsable(){ return storageMode === "gdrive" && driveReady; }
+
+async function syncPendingStlUploads(){
+  if(!driveUsable()) return;
+  let uploaded = 0;
+  for(const pr of prints){
+    if(!pr.stl || pr.stl.driveFileId) continue;
+    const buf = await stlGet(pr.id);
+    if(!buf) continue;
+    try{
+      if(!(await ensureDriveToken())) return;
+      pr.stl.driveFileId = await driveUploadBinary(`stl_${pr.stl.fileName}`, buf);
+      uploaded++;
+    }catch(e){}
+  }
+  if(uploaded){ await saveAll(); renderPrints(); toast(`Wysłano ${uploaded} model(e) STL na Dysk Google`); }
+}
+
+async function getStlBuffer(pr){
+  let buf = await stlGet(pr.id);
+  if(buf) return buf;
+  if(pr.stl && pr.stl.driveFileId){
+    if(!driveUsable()) throw new Error("Model jest na Dysku Google — połącz się z Dyskiem, żeby go wczytać.");
+    if(!(await ensureDriveToken())) throw new Error("Nie udało się zalogować do Google.");
+    buf = await driveDownloadBinary(pr.stl.driveFileId);
+    await stlPut(pr.id, buf);
+    return buf;
+  }
+  throw new Error("Brak pliku modelu na tym urządzeniu.");
+}
+
+/* ---------- three.js loading + STL parsing ---------- */
+let threePromise = null;
+function loadThree(){
+  if(window.THREE) return Promise.resolve();
+  if(threePromise) return threePromise;
+  threePromise = new Promise((resolve, reject) => {
+    const sc = document.createElement("script");
+    sc.src = THREE_URL;
+    sc.onload = () => resolve();
+    sc.onerror = () => { threePromise = null; reject(new Error("Nie udało się wczytać biblioteki 3D")); };
+    document.head.appendChild(sc);
+  });
+  return threePromise;
+}
+
+function parseSTL(buf){
+  const dv = new DataView(buf);
+  let isBinary = false;
+  if(buf.byteLength >= 84){
+    const n = dv.getUint32(80, true);
+    if(84 + n * 50 === buf.byteLength) isBinary = true;
+    else{
+      const head = new TextDecoder().decode(new Uint8Array(buf, 0, Math.min(256, buf.byteLength))).trim().toLowerCase();
+      isBinary = !head.startsWith("solid");
+    }
+  }
+  if(isBinary){
+    const n = dv.getUint32(80, true);
+    const pos = new Float32Array(n * 9);
+    let off = 84;
+    for(let t = 0; t < n; t++){
+      off += 12; // skip facet normal (recomputed)
+      for(let v = 0; v < 9; v++){ pos[t * 9 + v] = dv.getFloat32(off, true); off += 4; }
+      off += 2;
+    }
+    return pos;
+  }
+  const text = new TextDecoder().decode(new Uint8Array(buf));
+  const re = /vertex\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)/g;
+  const arr = [];
+  let m;
+  while((m = re.exec(text)) !== null){ arr.push(parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])); }
+  if(arr.length < 9) throw new Error("Pusty lub nieprawidłowy plik STL");
+  return new Float32Array(arr);
+}
+
+function buildGeometry(positions){
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  const b = geo.boundingBox;
+  const dims = { x: b.max.x - b.min.x, y: b.max.y - b.min.y, z: b.max.z - b.min.z };
+  geo.center();
+  geo.computeBoundingSphere();
+  return { geo, dims };
+}
+
+function buildScene(geo, wireframe){
+  const scene = new THREE.Scene();
+  const mat = new THREE.MeshStandardMaterial({ color: 0xc97a46, metalness: 0.18, roughness: 0.52, wireframe: !!wireframe });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2; // STL is Z-up, three.js is Y-up
+  const group = new THREE.Group();
+  group.add(mesh);
+  scene.add(group);
+  scene.add(new THREE.HemisphereLight(0xfff4e6, 0x1a261b, 0.85));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.75); d1.position.set(1, 1.4, 1.2); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x9fc3a8, 0.35); d2.position.set(-1.2, -0.4, -1); scene.add(d2);
+  return { scene, group, mesh, mat };
+}
+
+function renderThumbnail(geo){
+  const size = 240;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(size, size);
+  renderer.setClearColor(0x141d16, 1);
+  const { scene, group, mat } = buildScene(geo, false);
+  group.rotation.set(0.55, -0.7, 0);
+  const r = geo.boundingSphere.radius || 1;
+  const cam = new THREE.PerspectiveCamera(40, 1, r / 100, r * 100);
+  cam.position.set(0, 0, r * 2.7);
+  renderer.render(scene, cam);
+  const url = renderer.domElement.toDataURL("image/jpeg", 0.82);
+  mat.dispose();
+  renderer.dispose();
+  if(renderer.forceContextLoss) renderer.forceContextLoss();
+  return url;
+}
+
+async function attachStlToPrint(pr, file){
+  const buf = await file.arrayBuffer();
+  let built;
+  try{
+    await loadThree();
+    built = buildGeometry(parseSTL(buf));
+  }catch(e){ toast("Nie udało się odczytać pliku STL"); return false; }
+  pr.thumb = renderThumbnail(built.geo);
+  pr.dims = { x: +built.dims.x.toFixed(1), y: +built.dims.y.toFixed(1), z: +built.dims.z.toFixed(1) };
+  built.geo.dispose();
+  if(pr.stl && pr.stl.driveFileId && driveUsable() && await ensureDriveToken()) await driveTrashFile(pr.stl.driveFileId);
+  pr.stl = { fileName: file.name, size: file.size, driveFileId: null };
+  await stlPut(pr.id, buf);
+  if(driveUsable()){
+    try{
+      if(await ensureDriveToken()) pr.stl.driveFileId = await driveUploadBinary(`stl_${file.name}`, buf);
+    }catch(e){ toast("Model zapisany lokalnie — nie udało się wysłać go na Dysk"); }
+  }
+  return true;
+}
+
+/* ---------- 3D viewer modal ---------- */
+let viewer = null;
+
+async function openViewer(printId){
+  const pr = prints.find(x => x.id === printId);
+  if(!pr || !pr.stl) return;
+  closeViewer();
+  $("#viewer-modal").classList.add("open");
+  $("#viewer-title").textContent = pr.name + (pr.stl.fileName ? "  ·  " + pr.stl.fileName : "");
+  $("#viewer-dims").textContent = pr.dims ? `Wymiary: ${pr.dims.x} × ${pr.dims.y} × ${pr.dims.z} mm` : "";
+  const status = $("#viewer-status");
+  status.style.display = "flex";
+  status.textContent = "Wczytywanie modelu…";
+  try{
+    await loadThree();
+    const buf = await getStlBuffer(pr);
+    if(!$("#viewer-modal").classList.contains("open")) return;
+    const built = buildGeometry(parseSTL(buf));
+    if(!pr.dims){ pr.dims = { x: +built.dims.x.toFixed(1), y: +built.dims.y.toFixed(1), z: +built.dims.z.toFixed(1) }; }
+    $("#viewer-dims").textContent = `Wymiary: ${pr.dims.x} × ${pr.dims.y} × ${pr.dims.z} mm`;
+    startViewer(built.geo);
+    status.style.display = "none";
+  }catch(e){
+    status.textContent = e.message || "Nie udało się wczytać modelu";
+  }
+}
+
+function startViewer(geo){
+  const wrap = $("#viewer-wrap");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  wrap.appendChild(renderer.domElement);
+  const { scene, group, mat } = buildScene(geo, false);
+  const r = geo.boundingSphere.radius || 1;
+  const cam = new THREE.PerspectiveCamera(42, 1, r / 100, r * 100);
+  const home = { rx: 0.55, ry: -0.7, dist: r * 2.7 };
+  const state = { rx: home.rx, ry: home.ry, dist: home.dist, auto: false, raf: 0 };
+  const resize = () => {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    renderer.setSize(w, h, false);
+    cam.aspect = w / Math.max(1, h);
+    cam.updateProjectionMatrix();
+  };
+  resize();
+
+  const pointers = new Map();
+  let pinchStart = 0, distStart = 0;
+  const onDown = (e) => {
+    renderer.domElement.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if(pointers.size === 2){
+      const [a, b] = [...pointers.values()];
+      pinchStart = Math.hypot(a.x - b.x, a.y - b.y); distStart = state.dist;
+    }
+  };
+  const onMove = (e) => {
+    if(!pointers.has(e.pointerId)) return;
+    const prev = pointers.get(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if(pointers.size === 1){
+      state.ry += (e.clientX - prev.x) * 0.01;
+      state.rx += (e.clientY - prev.y) * 0.01;
+      state.rx = Math.max(-1.55, Math.min(1.55, state.rx));
+    }else if(pointers.size === 2 && pinchStart > 0){
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      state.dist = Math.max(r * 0.6, Math.min(r * 12, distStart * pinchStart / Math.max(1, d)));
+    }
+  };
+  const onUp = (e) => { pointers.delete(e.pointerId); if(pointers.size < 2) pinchStart = 0; };
+  const onWheel = (e) => {
+    e.preventDefault();
+    state.dist = Math.max(r * 0.6, Math.min(r * 12, state.dist * (e.deltaY > 0 ? 1.1 : 0.9)));
+  };
+  const el = renderer.domElement;
+  el.addEventListener("pointerdown", onDown);
+  el.addEventListener("pointermove", onMove);
+  el.addEventListener("pointerup", onUp);
+  el.addEventListener("pointercancel", onUp);
+  el.addEventListener("wheel", onWheel, { passive: false });
+  window.addEventListener("resize", resize);
+
+  const loop = () => {
+    if(state.auto) state.ry += 0.008;
+    group.rotation.set(state.rx, state.ry, 0);
+    cam.position.set(0, 0, state.dist);
+    cam.lookAt(0, 0, 0);
+    renderer.render(scene, cam);
+    state.raf = requestAnimationFrame(loop);
+  };
+  loop();
+
+  viewer = { renderer, geo, mat, state, home, resize };
+  $("#viewer-auto").classList.remove("on");
+  $("#viewer-wire").classList.remove("on");
+}
+
+function closeViewer(){
+  if(viewer){
+    cancelAnimationFrame(viewer.state.raf);
+    window.removeEventListener("resize", viewer.resize);
+    viewer.geo.dispose();
+    viewer.mat.dispose();
+    viewer.renderer.dispose();
+    if(viewer.renderer.forceContextLoss) viewer.renderer.forceContextLoss();
+    viewer.renderer.domElement.remove();
+    viewer = null;
+  }
+  $("#viewer-modal").classList.remove("open");
+}
+
+/* ---------- print CRUD ---------- */
+function refreshPrintCategoryLists(){
+  const used = new Set(PRINT_CATEGORIES);
+  prints.forEach(pr => { if(pr.category) used.add(pr.category); });
+  const all = [...used];
+  $("#pr-cat-list").innerHTML = all.map(c => `<option value="${escapeHtml(c)}">`).join("");
+  const sel = $("#print-filter-cat");
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">Wszystkie kategorie</option>` + all.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  if(all.includes(cur)) sel.value = cur;
+}
+
+function clearPrintForm(){
+  ["pr-name","pr-cat","pr-need","pr-have","pr-mat","pr-color","pr-notes"].forEach(id => $("#"+id).value = "");
+  pendingStlFile = null;
+  $("#pr-stl").value = "";
+  $("#pr-stl-name").textContent = "nie wybrano — można dodać później";
+  editingPrintId = null;
+  $("#print-form-title").firstChild.textContent = "Dodaj wydruk 3D ";
+  $("#btn-print-save").textContent = "Dodaj wydruk";
+  $("#btn-print-cancel").style.display = "none";
+  $("#print-hint").textContent = "";
+}
+
+function startEditPrint(id){
+  const pr = prints.find(x => x.id === id);
+  if(!pr) return;
+  editingPrintId = id;
+  $("#pr-name").value = pr.name || "";
+  $("#pr-cat").value = pr.category || "";
+  $("#pr-need").value = pr.qtyNeeded ?? "";
+  $("#pr-have").value = pr.qtyHave ?? "";
+  $("#pr-mat").value = pr.material || "";
+  $("#pr-color").value = pr.color || "";
+  $("#pr-notes").value = pr.notes || "";
+  pendingStlFile = null;
+  $("#pr-stl").value = "";
+  $("#pr-stl-name").textContent = pr.stl ? `obecny: ${pr.stl.fileName} (wybierz nowy, żeby podmienić)` : "brak modelu — możesz dodać";
+  $("#print-form-title").firstChild.textContent = "Edytuj wydruk 3D ";
+  $("#btn-print-save").textContent = "Zapisz zmiany";
+  $("#btn-print-cancel").style.display = "inline-block";
+  $("#tab-druk3d").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function handlePrintSave(){
+  const name = $("#pr-name").value.trim();
+  if(!name){ $("#print-hint").textContent = "Podaj nazwę wydruku."; $("#pr-name").focus(); return; }
+  const num = (id) => { const v = Number($("#"+id).value); return isNaN(v) || v < 0 ? 0 : Math.floor(v); };
+  const data = {
+    name,
+    category: $("#pr-cat").value.trim() || "Inne",
+    qtyNeeded: num("pr-need"),
+    qtyHave: num("pr-have"),
+    material: $("#pr-mat").value.trim(),
+    color: $("#pr-color").value.trim(),
+    notes: $("#pr-notes").value.trim()
+  };
+  let pr;
+  if(editingPrintId){
+    pr = prints.find(x => x.id === editingPrintId);
+    if(!pr) return;
+    Object.assign(pr, data);
+  }else{
+    pr = { id: uid('pr_'), ...data, components: [], stl: null, thumb: null, dims: null, created: Date.now() };
+    prints.push(pr);
+  }
+  const btn = $("#btn-print-save");
+  btn.disabled = true;
+  if(pendingStlFile){
+    $("#print-hint").textContent = "Przetwarzanie modelu 3D…";
+    await attachStlToPrint(pr, pendingStlFile);
+  }
+  btn.disabled = false;
+  const wasEditing = !!editingPrintId;
+  clearPrintForm();
+  await saveAll();
+  renderPrints(); renderStats();
+  toast(wasEditing ? "Zapisano zmiany" : "Dodano wydruk");
+}
+
+async function deletePrint(id){
+  const pr = prints.find(x => x.id === id);
+  if(!pr) return;
+  if(!confirm(`Usunąć wydruk „${pr.name}” razem z jego listą elementów dodatkowych?`)) return;
+  if(pr.stl && pr.stl.driveFileId && driveUsable() && await ensureDriveToken()) await driveTrashFile(pr.stl.driveFileId);
+  await stlDel(pr.id);
+  prints = prints.filter(x => x.id !== id);
+  if(editingPrintId === id) clearPrintForm();
+  await saveAll();
+  render();
+  toast("Usunięto wydruk");
+}
+
+async function changePrintHave(id, delta){
+  const pr = prints.find(x => x.id === id);
+  if(!pr) return;
+  pr.qtyHave = Math.max(0, (Number(pr.qtyHave)||0) + delta);
+  await saveAll();
+  renderPrints(); renderStats();
+}
+
+async function replacePrintStl(id, file){
+  const pr = prints.find(x => x.id === id);
+  if(!pr || !file) return;
+  toast("Przetwarzanie modelu 3D…");
+  const ok = await attachStlToPrint(pr, file);
+  if(!ok) return;
+  await saveAll();
+  renderPrints();
+  toast("Dodano model 3D");
+}
+
+/* ---------- components (extra parts per printed piece) ---------- */
+async function addPrintComponent(printId){
+  const pr = prints.find(x => x.id === printId);
+  if(!pr) return;
+  const mode = printCompMode[printId] || "existing";
+  const qtyEl = document.getElementById(`pc-qty-${printId}`);
+  const qtyPer = Number(qtyEl.value);
+  if(!qtyPer || qtyPer <= 0){ toast("Podaj ilość na 1 sztukę"); qtyEl.focus(); return; }
+  if(mode === "existing"){
+    const itemId = document.getElementById(`pc-link-${printId}`).value;
+    const src = items.find(i => i.id === itemId);
+    if(!src){ toast("Wybierz element z magazynu"); return; }
+    const label = src.value ? `${src.name} (${src.value})` : src.name;
+    pr.components.push({ id: uid('pc_'), itemId: src.id, name: label, qtyPer, reserved: false });
+  }else{
+    const nameEl = document.getElementById(`pc-name-${printId}`);
+    const name = nameEl.value.trim();
+    if(!name){ toast("Podaj nazwę elementu"); nameEl.focus(); return; }
+    pr.components.push({ id: uid('pc_'), itemId: null, name, qtyPer, reserved: false });
+  }
+  await saveAll();
+  render();
+}
+
+async function deletePrintComponent(printId, compId){
+  const pr = prints.find(x => x.id === printId);
+  if(!pr) return;
+  pr.components = pr.components.filter(c => c.id !== compId);
+  await saveAll();
+  render();
+}
+
+async function togglePrintCompReserved(printId, compId){
+  const pr = prints.find(x => x.id === printId);
+  const c = pr && pr.components.find(x => x.id === compId);
+  if(!c || !c.itemId) return;
+  if(!c.reserved){
+    const it = items.find(i => i.id === c.itemId);
+    const avail = it ? it.qty - reservedQtyForItem(c.itemId) : 0;
+    const total = compTotal(pr, c);
+    if(!it || avail < total){ toast(`Za mało na stanie: dostępne ${Math.max(0, avail)}, potrzeba ${total}`); return; }
+  }
+  c.reserved = !c.reserved;
+  await saveAll();
+  render();
+  toast(c.reserved ? "Zablokowano pod ten wydruk" : "Odblokowano element");
+}
+
+async function addPrintShortfallsToShopping(printId){
+  const pr = prints.find(x => x.id === printId);
+  if(!pr) return;
+  const sfs = printCompShortfalls(pr);
+  if(sfs.length === 0){ toast("Brak braków — wszystko pokryte z magazynu"); return; }
+  let added = 0, updated = 0;
+  sfs.forEach(sf => {
+    const existing = shopping.find(s => !s.bought && s.sourcePrintId === printId && s.sourceCompId === sf.compId);
+    if(existing){ existing.qty = sf.missing; updated++; return; }
+    const src = sf.itemId ? items.find(i => i.id === sf.itemId) : null;
+    shopping.push({
+      id: uid('sh_'), name: sf.name, category: src ? src.category : "", qty: sf.missing,
+      note: `do wydruku: ${pr.name}`, linkedItemId: sf.itemId || null,
+      sourcePrintId: printId, sourceCompId: sf.compId, bought: false, created: Date.now()
+    });
+    added++;
+  });
+  await saveAll();
+  renderShopping(); renderStats();
+  toast(`Lista zakupów: dodano ${added}${updated ? `, zaktualizowano ${updated}` : ""}`);
+}
+
+/* ---------- rendering ---------- */
+function renderPrintComponents(pr){
+  const mode = printCompMode[pr.id] || "existing";
+  let html = `<div class="comp-body">`;
+  if((pr.components||[]).length === 0){
+    html += `<div class="hint" style="margin:0 0 4px;">Brak elementów dodatkowych. Dodaj np. sprężynki, magnesy albo śrubki potrzebne do 1 sztuki.</div>`;
+  }
+  (pr.components||[]).forEach(c => {
+    const total = compTotal(pr, c);
+    let status;
+    if(!c.itemId){
+      status = `<span class="badge" style="border-color:#8a948855; color:#8a9488; background:#8a948814;">spoza magazynu</span>`;
+    }else if(c.reserved){
+      status = `<span class="badge" style="border-color:#6fa97e55; color:#6fa97e; background:#6fa97e14;">zablokowane</span>`;
+    }else{
+      const it = items.find(i => i.id === c.itemId);
+      const avail = it ? Math.max(0, it.qty - reservedQtyForItem(c.itemId)) : 0;
+      const enough = avail >= total;
+      const col = enough ? "#6fa97e" : "#e07456";
+      status = `<span class="badge" style="border-color:${col}55; color:${col}; background:${col}14;">dost. ${avail}</span>`;
+    }
+    html += `<div class="comp-row">
+      <div class="cname">${escapeHtml(c.name)}<small>${c.qtyPer} / szt. · łącznie ${total}</small></div>
+      ${status}
+      ${c.itemId ? `<button class="icon-btn" title="${c.reserved ? "Odblokuj" : "Zablokuj w magazynie"}" data-pc-reserve="${pr.id}" data-comp="${c.id}">${c.reserved ? "🔓" : "🔒"}</button>` : ""}
+      <button class="icon-btn del" title="Usuń" data-pc-del="${pr.id}" data-comp="${c.id}">✕</button>
+    </div>`;
+  });
+  html += `<div class="mode-toggle" style="margin:12px 0 0;">
+      <button class="mode-btn ${mode === "existing" ? "active" : ""}" data-pc-mode="${pr.id}" data-mode-val="existing">Z magazynu</button>
+      <button class="mode-btn ${mode === "external" ? "active" : ""}" data-pc-mode="${pr.id}" data-mode-val="external">Spoza magazynu</button>
+    </div>
+    <div class="comp-form">
+      ${mode === "existing"
+        ? `<select id="pc-link-${pr.id}">${items.length ? items.slice().sort((a,b) => a.name.localeCompare(b.name)).map(it => `<option value="${it.id}">${escapeHtml(itemFullLabel(it))}</option>`).join("") : `<option value="">Brak elementów w magazynie</option>`}</select>`
+        : `<input type="text" id="pc-name-${pr.id}" placeholder="np. magnes neodymowy 6×3">`}
+      <input type="number" min="1" step="1" id="pc-qty-${pr.id}" placeholder="/ szt.">
+      <button class="btn btn-primary" data-pc-add="${pr.id}">Dodaj</button>
+    </div>`;
+  if(printCompShortfalls(pr).length){
+    html += `<div style="margin-top:12px;"><button class="btn-mini" data-pc-shop="${pr.id}">🛒 Dodaj braki do listy zakupów</button></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderPrints(){
+  const listEl = $("#print-list");
+  if(!listEl) return;
+  refreshPrintCategoryLists();
+  if(prints.length === 0){
+    listEl.innerHTML = `<div class="table-wrap"><div class="empty"><div class="big">Brak wydruków</div>Dodaj pierwszy wydruk powyżej — np. gałki rejestrów albo etykiety.</div></div>`;
+    return;
+  }
+  const q = printSearch.toLowerCase();
+  const list = prints.filter(pr =>
+    (!printFilterCat || pr.category === printFilterCat) &&
+    (!q || [pr.name, pr.category, pr.material, pr.color, pr.notes].some(v => (v||"").toLowerCase().includes(q)))
+  ).sort((a,b) => (printToDo(b) > 0) - (printToDo(a) > 0) || a.name.localeCompare(b.name));
+  if(list.length === 0){
+    listEl.innerHTML = `<div class="table-wrap"><div class="empty"><div class="big">Brak wyników</div>Zmień filtr albo wyczyść wyszukiwanie.</div></div>`;
+    return;
+  }
+  let html = `<div class="print-grid">`;
+  list.forEach(pr => {
+    const need = Number(pr.qtyNeeded)||0, have = Number(pr.qtyHave)||0;
+    const todo = printToDo(pr);
+    const pct = need > 0 ? Math.min(100, Math.round(have / need * 100)) : (have > 0 ? 100 : 0);
+    const done = need > 0 && todo === 0;
+    const col = printCatColor(pr.category);
+    const comps = pr.components || [];
+    const sfs = printCompShortfalls(pr);
+    const expanded = expandedPrints.has(pr.id);
+    const meta = [pr.material, pr.color].filter(Boolean).join(" · ");
+    const dims = pr.dims ? `${pr.dims.x}×${pr.dims.y}×${pr.dims.z} mm` : "";
+    const thumb = pr.thumb
+      ? `<img src="${pr.thumb}" alt="">`
+      : `<div class="thumb-ph"><span class="ico">🖨️</span>${pr.stl ? "model bez<br>miniatury" : "brak modelu"}</div>`;
+    html += `<div class="print-card ${done ? "done" : ""}">
+      <div class="print-top">
+        <div class="print-thumb ${pr.stl ? "has-model" : ""}" ${pr.stl ? `data-pr-view="${pr.id}" title="Podgląd 3D"` : ""}>${thumb}${pr.stl ? `<span class="badge-3d">3D</span>` : ""}</div>
+        <div class="print-info">
+          <div class="print-name">${escapeHtml(pr.name)}</div>
+          <span class="badge" style="border-color:${col}55; color:${col}; background:${col}14;">${escapeHtml(pr.category || "Inne")}</span>
+          ${meta || dims ? `<div class="print-meta">${escapeHtml(meta)}${meta && dims ? "<br>" : ""}${dims}</div>` : ""}
+          ${pr.notes ? `<div class="item-loc" style="margin-top:4px;">${escapeHtml(pr.notes)}</div>` : ""}
+        </div>
+      </div>
+      <div style="padding:0 14px 12px;">
+        <div class="progress"><span style="width:${pct}%"></span></div>
+        <div class="print-count">
+          <span>Mam <b>${have}</b> / potrzeba <b>${need}</b></span>
+          <span class="todo">${done ? "✓ komplet" : (todo > 0 ? `do druku: ${todo}` : "")}</span>
+          <span class="qty-ctrl"><button data-pr-dec="${pr.id}" title="−1">−</button><button data-pr-inc="${pr.id}" title="+1 (wydrukowane)">+</button></span>
+        </div>
+      </div>
+      <div class="print-actions">
+        <button class="btn-mini" data-pr-stl-btn="${pr.id}">${pr.stl ? "↻ Podmień STL" : "📎 Dodaj STL"}</button>
+        <input type="file" id="pr-stl-file-${pr.id}" accept=".stl,model/stl,application/sla" style="display:none;">
+        ${pr.stl && !pr.stl.driveFileId && storageMode !== "claude" ? `<span class="hint" title="Model jest tylko na tym urządzeniu — wyśle się na Dysk po połączeniu">tylko lokalnie</span>` : ""}
+        <span class="sp"></span>
+        <button class="icon-btn edit" title="Edytuj" data-pr-edit="${pr.id}">✎</button>
+        <button class="icon-btn del" title="Usuń" data-pr-del="${pr.id}">✕</button>
+      </div>
+      <button class="comp-toggle" data-pr-toggle="${pr.id}">
+        ${expanded ? "▾" : "▸"} Elementy dodatkowe (${comps.length})
+        ${comps.length ? (sfs.length ? `<span class="warn">· braki: ${sfs.length}</span>` : `<span class="ok">· wszystko pokryte</span>`) : ""}
+      </button>
+      ${expanded ? renderPrintComponents(pr) : ""}
+    </div>`;
+  });
+  html += `</div>`;
+  listEl.innerHTML = html;
+
+  const on = (sel, fn) => listEl.querySelectorAll(sel).forEach(el => el.addEventListener("click", () => fn(el)));
+  on("[data-pr-view]", el => openViewer(el.dataset.prView));
+  on("[data-pr-inc]", el => changePrintHave(el.dataset.prInc, 1));
+  on("[data-pr-dec]", el => changePrintHave(el.dataset.prDec, -1));
+  on("[data-pr-edit]", el => startEditPrint(el.dataset.prEdit));
+  on("[data-pr-del]", el => deletePrint(el.dataset.prDel));
+  on("[data-pr-stl-btn]", el => document.getElementById(`pr-stl-file-${el.dataset.prStlBtn}`).click());
+  on("[data-pr-toggle]", el => {
+    const id = el.dataset.prToggle;
+    if(expandedPrints.has(id)) expandedPrints.delete(id); else expandedPrints.add(id);
+    renderPrints();
+  });
+  on("[data-pc-mode]", el => { printCompMode[el.dataset.pcMode] = el.dataset.modeVal; renderPrints(); });
+  on("[data-pc-add]", el => addPrintComponent(el.dataset.pcAdd));
+  on("[data-pc-del]", el => deletePrintComponent(el.dataset.pcDel, el.dataset.comp));
+  on("[data-pc-reserve]", el => togglePrintCompReserved(el.dataset.pcReserve, el.dataset.comp));
+  on("[data-pc-shop]", el => addPrintShortfallsToShopping(el.dataset.pcShop));
+  listEl.querySelectorAll("input[id^='pr-stl-file-']").forEach(inp => inp.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if(file) await replacePrintStl(inp.id.replace("pr-stl-file-", ""), file);
+    e.target.value = "";
+  }));
+  listEl.querySelectorAll("input[id^='pc-qty-'], input[id^='pc-name-']").forEach(inp => inp.addEventListener("keydown", (e) => {
+    if(e.key === "Enter") addPrintComponent(inp.id.replace(/^pc-(qty|name)-/, ""));
+  }));
+}
+
+function wirePrintModule(){
+  $("#btn-print-save").addEventListener("click", handlePrintSave);
+  $("#btn-print-cancel").addEventListener("click", clearPrintForm);
+  $("#btn-pr-stl").addEventListener("click", () => $("#pr-stl").click());
+  $("#pr-stl").addEventListener("change", (e) => {
+    pendingStlFile = e.target.files[0] || null;
+    $("#pr-stl-name").textContent = pendingStlFile ? `${pendingStlFile.name} (${(pendingStlFile.size/1024/1024).toFixed(2)} MB)` : "nie wybrano — można dodać później";
+  });
+  ["pr-name","pr-cat","pr-need","pr-have","pr-mat","pr-color","pr-notes"].forEach(id =>
+    $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handlePrintSave(); }));
+  $("#print-search").addEventListener("input", (e) => { printSearch = e.target.value; renderPrints(); });
+  $("#print-filter-cat").addEventListener("change", (e) => { printFilterCat = e.target.value; renderPrints(); });
+
+  $("#viewer-close").addEventListener("click", closeViewer);
+  $("#viewer-modal").addEventListener("click", (e) => { if(e.target.id === "viewer-modal") closeViewer(); });
+  document.addEventListener("keydown", (e) => { if(e.key === "Escape" && $("#viewer-modal").classList.contains("open")) closeViewer(); });
+  $("#viewer-auto").addEventListener("click", () => {
+    if(!viewer) return;
+    viewer.state.auto = !viewer.state.auto;
+    $("#viewer-auto").classList.toggle("on", viewer.state.auto);
+  });
+  $("#viewer-wire").addEventListener("click", () => {
+    if(!viewer) return;
+    viewer.mat.wireframe = !viewer.mat.wireframe;
+    $("#viewer-wire").classList.toggle("on", viewer.mat.wireframe);
+  });
+  $("#viewer-reset").addEventListener("click", () => {
+    if(!viewer) return;
+    viewer.state.rx = viewer.home.rx; viewer.state.ry = viewer.home.ry; viewer.state.dist = viewer.home.dist;
+  });
+}
+
 /* ---------- init ---------- */
 async function init(){
   fillCategorySelect($("#f-cat"));
@@ -1808,6 +2646,8 @@ async function init(){
   refreshShoppingLinkOptions();
   renderTodos();
   renderPcbs();
+  wirePrintModule();
+  renderPrints();
 
   $("#btn-todo-add").addEventListener("click", handleTodoSave);
   ["t-task","t-comment"].forEach(id => $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handleTodoSave(); }));

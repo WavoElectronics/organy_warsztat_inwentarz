@@ -288,6 +288,7 @@
     <button class="tab-btn active" data-tab="magazyn"><span class="tab-icon">📦</span> Magazyn</button>
     <button class="tab-btn" data-tab="projekty"><span class="tab-icon">🛠️</span> Projekty</button>
     <button class="tab-btn" data-tab="druk3d"><span class="tab-icon">🖨️</span> Druk 3D</button>
+    <button class="tab-btn" data-tab="schematy"><span class="tab-icon">🔌</span> Schematy</button>
   </div>
 
   <div class="tab-panel active" id="tab-magazyn">
@@ -474,6 +475,28 @@
   </div>
   <div id="print-list"><div class="table-wrap"><div class="loading-state">Wczytywanie wydruków…</div></div></div>
   </div>
+
+  <div class="tab-panel" id="tab-schematy">
+  <div class="panel">
+    <h2>Schematy i dokumenty <span class="sub">prywatne — tylko po zalogowaniu na Twoje konto Google</span>
+      <button class="btn-mini" id="btn-doc-add" type="button" style="margin-left:auto;">⇪ Dodaj plik HTML</button>
+      <input type="file" id="doc-add-file" accept=".html,.htm,text/html" style="display:none;">
+    </h2>
+    <div class="info-note" style="margin-top:0;">Pliki zapisują się na Twoim Dysku Google, a nie na GitHubie — publiczna strona nie zawiera ich treści, więc bez zalogowania na Twoje konto nikt ich nie zobaczy. Dokument otwiera się w izolowanej ramce, bez dostępu do reszty aplikacji.</div>
+  </div>
+  <div class="table-wrap"><div id="doc-list"><div class="loading-state">Wczytywanie…</div></div></div>
+  <div class="table-wrap" id="doc-viewer" style="display:none; margin-top:18px;">
+    <div style="display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); background:var(--panel-2);">
+      <div class="item-name" id="doc-viewer-title" style="flex:1; font-family:var(--font-display);"></div>
+      <button class="btn-mini" id="doc-full" type="button">⛶ Pełny ekran</button>
+      <button class="icon-btn" id="doc-close" type="button" title="Zamknij">✕</button>
+    </div>
+    <div id="doc-frame-wrap" style="position:relative; height:82vh; background:#fff;">
+      <div class="viewer-status" id="doc-status" style="background:var(--bg-alt);">Wczytywanie dokumentu…</div>
+      <iframe id="doc-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" style="width:100%; height:100%; border:0; display:none;"></iframe>
+    </div>
+  </div>
+  </div>
 </div>
 
 <div class="viewer-modal" id="viewer-modal">
@@ -527,6 +550,7 @@ let items = [];
 let shopping = [];
 let todos = [];
 let pcbs = []; // {id, name, notes, created, parts:[{id, itemId|null, name, qtyNeeded, reserved}]}
+let docs = [];  // {id, name, fileName, size, driveFileId} — content lives on Drive, not in the repo
 let prints = []; // {id, name, category, qtyNeeded, qtyHave, material, color, notes, stl, thumb, dims, components:[{id, itemId|null, name, qtyPer, reserved}]}
 let storageMode = "local"; // "claude" | "gdrive" | "fsapi" | "local"
 let fsHandle = null;
@@ -927,7 +951,7 @@ async function connectGoogleDriveFlow(){
     if(!ok){ toast("Nie udało się zalogować do Google"); return; }
     await driveFindOrCreateFile();
     if(pendingLocalChanges){
-      await driveWriteRaw(JSON.stringify({ items, shopping, todos, pcbs, prints }, null, 2));
+      await driveWriteRaw(JSON.stringify({ items, shopping, todos, pcbs, prints, docs }, null, 2));
       pendingLocalChanges = false;
       toast("Zsynchronizowano zmiany z Dyskiem Google");
     }else{
@@ -939,7 +963,8 @@ async function connectGoogleDriveFlow(){
     driveReady = true;
     localStorage.setItem("preferredBackend", "gdrive");
     render(); renderShopping(); renderTodos(); renderPcbs(); renderStorageBar(); refreshShoppingLinkOptions();
-    syncPendingStlUploads();
+    renderDocs();
+    syncPendingStlUploads().then(syncPendingDocUploads);
   }catch(e){
     toast("Nie udało się połączyć z Google Drive");
   }
@@ -1072,7 +1097,7 @@ function renderStorageBar(){
 
 /* ---------- low level read/write per backend ---------- */
 async function writeToFile(){
-  const payload = JSON.stringify({ items, shopping, todos, pcbs, prints }, null, 2);
+  const payload = JSON.stringify({ items, shopping, todos, pcbs, prints, docs }, null, 2);
   if(storageMode === "claude"){
     try{
       const res = await window.storage.set(STORAGE_KEY, payload, false);
@@ -1125,13 +1150,14 @@ async function readFromFile(){
 }
 
 function applyLoadedData(data){
-  if(!data){ items = []; shopping = []; todos = []; pcbs = []; prints = []; return; }
-  if(Array.isArray(data)){ items = data; shopping = []; todos = []; pcbs = []; prints = []; return; } // legacy format
+  if(!data){ items = []; shopping = []; todos = []; pcbs = []; prints = []; docs = []; return; }
+  if(Array.isArray(data)){ items = data; shopping = []; todos = []; pcbs = []; prints = []; docs = []; return; } // legacy format
   items = Array.isArray(data.items) ? data.items : [];
   shopping = Array.isArray(data.shopping) ? data.shopping : [];
   todos = Array.isArray(data.todos) ? data.todos : [];
   pcbs = Array.isArray(data.pcbs) ? data.pcbs : [];
   prints = Array.isArray(data.prints) ? data.prints : [];
+  docs = Array.isArray(data.docs) ? data.docs : [];
 }
 
 // Top-level load: on fresh page load, prefer the real backend if ready;
@@ -1158,11 +1184,11 @@ async function saveAll(){
   if(storageMode === "gdrive" && driveReady && driveFileId){ await writeToFile(); return; }
   if((storageMode === "fsapi" && (!fsHandle || !fsReady)) || (storageMode === "gdrive" && (!driveReady || !driveFileId))){
     pendingLocalChanges = true;
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints })); }catch(e){}
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints, docs })); }catch(e){}
     renderStorageBar();
     return;
   }
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints })); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints, docs })); }catch(e){}
 }
 
 /* ---------- category dot selects ---------- */
@@ -1326,7 +1352,7 @@ function renderTable(){
   }));
 }
 
-function render(){ renderStats(); renderTable(); if(typeof renderPrints === "function") renderPrints(); }
+function render(){ renderStats(); renderTable(); if(typeof renderPrints === "function") renderPrints(); if(typeof renderDocs === "function") renderDocs(); }
 
 function clearForm(){
   $("#f-name").value = ""; $("#f-cat").value = CATEGORIES[0]; $("#f-qty").value = "";
@@ -2627,6 +2653,209 @@ function wirePrintModule(){
   });
 }
 
+/* =====================================================================
+   PRIVATE DOCUMENTS — HTML pages (schematics, wiring) kept on Google Drive,
+   never in the public GitHub repo; loaded only after the owner signs in
+   ===================================================================== */
+let openDocId = null;
+
+async function driveUploadText(name, text, mime){
+  const headers = { Authorization: "Bearer " + driveAccessToken };
+  const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST", headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, mimeType: mime })
+  });
+  if(!createRes.ok) throw new Error("create failed");
+  const created = await createRes.json();
+  const up = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${created.id}?uploadType=media`, {
+    method: "PATCH", headers: { ...headers, "Content-Type": mime + ";charset=utf-8" }, body: text
+  });
+  if(!up.ok) throw new Error("upload failed");
+  return created.id;
+}
+
+async function syncPendingDocUploads(){
+  if(!driveUsable()) return;
+  let uploaded = 0;
+  for(const d of docs){
+    if(d.driveFileId) continue;
+    const text = await stlGet("doc:" + d.id);
+    if(!text) continue;
+    try{
+      if(!(await ensureDriveToken())) return;
+      d.driveFileId = await driveUploadText(`dokument_${d.fileName}`, text, "text/html");
+      uploaded++;
+    }catch(e){}
+  }
+  if(uploaded){ await saveAll(); renderDocs(); toast(`Wysłano ${uploaded} dokument(y) na Dysk Google`); }
+}
+
+async function getDocHtml(d){
+  let text = await stlGet("doc:" + d.id);
+  if(text) return text;
+  if(d.driveFileId){
+    if(!driveUsable()) throw new Error("Ten dokument jest na Twoim Dysku Google — połącz się z Dyskiem (pasek na górze), żeby go otworzyć.");
+    if(!(await ensureDriveToken())) throw new Error("Nie udało się zalogować do Google.");
+    text = new TextDecoder().decode(await driveDownloadBinary(d.driveFileId));
+    await stlPut("doc:" + d.id, text);
+    return text;
+  }
+  throw new Error("Brak treści dokumentu na tym urządzeniu.");
+}
+
+function docTitleFromHtml(html, fallback){
+  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const t = m ? m[1].replace(/\s+/g, " ").trim() : "";
+  return t || fallback;
+}
+
+async function storeDocContent(d, file){
+  const text = await file.text();
+  if(d.driveFileId && driveUsable() && await ensureDriveToken()) await driveTrashFile(d.driveFileId);
+  d.driveFileId = null;
+  d.fileName = file.name;
+  d.size = file.size;
+  d.updated = Date.now();
+  await stlPut("doc:" + d.id, text);
+  if(driveUsable()){
+    try{
+      if(await ensureDriveToken()) d.driveFileId = await driveUploadText(`dokument_${file.name}`, text, "text/html");
+    }catch(e){ toast("Zapisano lokalnie — nie udało się wysłać na Dysk"); }
+  }
+  return text;
+}
+
+async function addDocFromFile(file){
+  const d = { id: uid('doc_'), name: file.name.replace(/\.html?$/i, ""), fileName: file.name, size: file.size, driveFileId: null, created: Date.now() };
+  const text = await storeDocContent(d, file);
+  d.name = docTitleFromHtml(text, d.name);
+  docs.push(d);
+  await saveAll();
+  renderDocs();
+  openDoc(d.id);
+  toast(d.driveFileId ? "Dodano dokument (zapisany na Twoim Dysku)" : "Dodano dokument — wyśle się na Dysk po połączeniu");
+}
+
+async function replaceDoc(id, file){
+  const d = docs.find(x => x.id === id);
+  if(!d) return;
+  await storeDocContent(d, file);
+  await saveAll();
+  renderDocs();
+  if(openDocId === id) openDoc(id);
+  toast("Podmieniono dokument");
+}
+
+async function renameDoc(id){
+  const d = docs.find(x => x.id === id);
+  if(!d) return;
+  const name = prompt("Nowa nazwa dokumentu:", d.name);
+  if(name === null || !name.trim()) return;
+  d.name = name.trim();
+  await saveAll();
+  renderDocs();
+}
+
+async function deleteDoc(id){
+  const d = docs.find(x => x.id === id);
+  if(!d) return;
+  if(!confirm(`Usunąć dokument „${d.name}”? Plik trafi do kosza na Twoim Dysku Google.`)) return;
+  if(d.driveFileId && driveUsable() && await ensureDriveToken()) await driveTrashFile(d.driveFileId);
+  await stlDel("doc:" + d.id);
+  docs = docs.filter(x => x.id !== id);
+  if(openDocId === id) closeDoc();
+  await saveAll();
+  renderDocs();
+  toast("Usunięto dokument");
+}
+
+async function openDoc(id){
+  const d = docs.find(x => x.id === id);
+  if(!d) return;
+  openDocId = id;
+  const box = $("#doc-viewer");
+  box.style.display = "block";
+  $("#doc-viewer-title").textContent = d.name;
+  const frame = $("#doc-frame");
+  const status = $("#doc-status");
+  frame.style.display = "none";
+  status.style.display = "flex";
+  status.textContent = "Wczytywanie dokumentu…";
+  renderDocs();
+  try{
+    const html = await getDocHtml(d);
+    if(openDocId !== id) return;
+    frame.srcdoc = html;
+    frame.style.display = "block";
+    status.style.display = "none";
+  }catch(e){
+    status.textContent = e.message || "Nie udało się wczytać dokumentu";
+  }
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeDoc(){
+  openDocId = null;
+  $("#doc-frame").srcdoc = "";
+  $("#doc-viewer").style.display = "none";
+  renderDocs();
+}
+
+function renderDocs(){
+  const el = $("#doc-list");
+  if(!el) return;
+  if(docs.length === 0){
+    el.innerHTML = `<div class="empty"><div class="big">Brak dokumentów</div>Dodaj plik HTML, np. schemat okablowania.</div>`;
+    return;
+  }
+  let html = `<table><thead><tr>
+    <th class="nosort">Dokument</th><th class="nosort">Gdzie zapisany</th><th class="nosort">Akcje</th>
+  </tr></thead><tbody>`;
+  docs.slice().sort((a,b) => a.name.localeCompare(b.name)).forEach(d => {
+    const where = d.driveFileId
+      ? `<span class="badge" style="border-color:#6fa97e55; color:#6fa97e; background:#6fa97e14;">Twój Dysk Google</span>`
+      : `<span class="badge" style="border-color:#c97a4655; color:#c97a46; background:#c97a4614;">tylko lokalnie</span>`;
+    html += `<tr ${openDocId === d.id ? 'style="background:rgba(201,122,70,0.07)"' : ""}>
+      <td><div class="item-name">${escapeHtml(d.name)}</div><div class="item-loc">${escapeHtml(d.fileName || "")}${d.size ? ` · ${(d.size/1024).toFixed(0)} kB` : ""}</div></td>
+      <td>${where}</td>
+      <td><div class="row-actions">
+        <button class="btn-mini" data-doc-open="${d.id}">Otwórz</button>
+        <button class="icon-btn edit" title="Zmień nazwę" data-doc-rename="${d.id}">✎</button>
+        <button class="icon-btn" title="Podmień plik" data-doc-replace="${d.id}">↻</button>
+        <input type="file" id="doc-file-${d.id}" accept=".html,.htm,text/html" style="display:none;">
+        <button class="icon-btn del" title="Usuń" data-doc-del="${d.id}">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+  const on = (sel, fn) => el.querySelectorAll(sel).forEach(b => b.addEventListener("click", () => fn(b)));
+  on("[data-doc-open]", b => openDoc(b.dataset.docOpen));
+  on("[data-doc-rename]", b => renameDoc(b.dataset.docRename));
+  on("[data-doc-del]", b => deleteDoc(b.dataset.docDel));
+  on("[data-doc-replace]", b => document.getElementById(`doc-file-${b.dataset.docReplace}`).click());
+  el.querySelectorAll("input[id^='doc-file-']").forEach(inp => inp.addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    if(f) await replaceDoc(inp.id.replace("doc-file-", ""), f);
+    e.target.value = "";
+  }));
+}
+
+function wireDocsModule(){
+  $("#btn-doc-add").addEventListener("click", () => $("#doc-add-file").click());
+  $("#doc-add-file").addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    if(f) await addDocFromFile(f);
+    e.target.value = "";
+  });
+  $("#doc-close").addEventListener("click", closeDoc);
+  $("#doc-full").addEventListener("click", () => {
+    const box = $("#doc-frame-wrap");
+    if(document.fullscreenElement) document.exitFullscreen();
+    else if(box.requestFullscreen) box.requestFullscreen();
+  });
+}
+
 /* ---------- init ---------- */
 async function init(){
   fillCategorySelect($("#f-cat"));
@@ -2648,6 +2877,8 @@ async function init(){
   renderPcbs();
   wirePrintModule();
   renderPrints();
+  wireDocsModule();
+  renderDocs();
 
   $("#btn-todo-add").addEventListener("click", handleTodoSave);
   ["t-task","t-comment"].forEach(id => $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handleTodoSave(); }));

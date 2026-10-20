@@ -257,6 +257,53 @@
   .stl-pick{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .stl-pick .fname{ font-family: var(--font-mono); font-size:12px; color: var(--muted); }
 
+  /* ---------- schematic viewer ---------- */
+  .sch-box{ width:min(1500px, 100%); height:100%; }
+  .sch-head{ flex-wrap:wrap; }
+  .sch-head input{ background: var(--bg-alt); border:1px solid var(--line); border-radius:7px; padding:6px 10px; color: var(--cream); font-size:13px; width:210px; outline:none; font-family: var(--font-mono); }
+  .sch-head input:focus{ border-color: var(--copper); }
+  #sch-sheets{ display:flex; gap:6px; }
+  .sch-stage{ flex:1; position:relative; background:#0b100c; touch-action:none; cursor:grab; overflow:hidden; }
+  .sch-stage.dragging{ cursor:grabbing; }
+  #sch-svg{ width:100%; height:100%; display:block; user-select:none; }
+  #sch-svg path, #sch-svg polyline{ fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  #sch-svg text{ font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; stroke:none; white-space:pre; }
+  #sch-svg .sch-hit{ fill:transparent; stroke:none; cursor:pointer; }
+  #sch-svg .nhit{ stroke:transparent; stroke-width:1.3; cursor:pointer; }
+  #sch-svg .l91{ stroke:#6fa97e; } #sch-svg .f91{ fill:#6fa97e; }
+  #sch-svg .l92{ stroke:#7fa8d1; } #sch-svg .f92{ fill:#7fa8d1; }
+  #sch-svg .l94{ stroke:#c97a46; } #sch-svg .f94{ fill:#c97a46; }
+  #sch-svg .l97{ stroke:#9a8a6a; } #sch-svg .f97{ fill:#9a8a6a; }
+  #sch-svg [class^="l"], #sch-svg [class*=" l"]{ }
+  #sch-svg .t95{ fill:#ede6d6; } #sch-svg .t96{ fill:#a9b5a6; } #sch-svg .t97{ fill:#b5a07f; }
+  #sch-svg .t94{ fill:#c97a46; } #sch-svg .t93{ fill:#6f8f76; } #sch-svg .tpinname{ fill:#d9a27a; }
+  #sch-svg .t91{ fill:#6fa97e; } #sch-svg .t92{ fill:#7fa8d1; }
+  #sch-svg .nlabel{ fill:#9fd0ab; }
+  #sch-svg.has-sel .sch-part, #sch-svg.has-sel .sch-net, #sch-svg.has-sel .sch-bus, #sch-svg.has-sel .sch-plain{ opacity:.25; }
+  #sch-svg.has-sel .sel, #sch-svg.has-sel .rel{ opacity:1; }
+  #sch-svg .sch-net.sel .nw{ stroke:#ffd166; stroke-width:.45; }
+  #sch-svg .sch-net.sel .jn{ fill:#ffd166; }
+  #sch-svg .sch-net.sel text{ fill:#ffd166; }
+  #sch-svg .sch-part.sel .l94{ stroke:#ffd166; }
+  #sch-svg .sch-part.sel text{ fill:#ffe6a6; }
+  #sch-svg .sch-part.sel .sch-hit{ fill:rgba(255,209,102,0.06); }
+  #sch-svg .pin-hl{ fill:none; stroke:#ffd166; stroke-width:.3; pointer-events:none; }
+  .sch-info{ border-top:1px solid var(--line); padding:10px 16px; max-height:30vh; overflow:auto; font-size:13px; display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; background: var(--panel); }
+  .sch-net-name{ font-family: var(--font-mono); font-size:14px; color:#ffd166; }
+  .sch-chip{ font-family: var(--font-mono); font-size:12px; background: var(--bg-alt); color: var(--cream); border:1px solid var(--line); border-radius:6px; padding:3px 8px; cursor:pointer; }
+  .sch-chip:hover{ border-color: var(--copper); color: var(--copper-bright); }
+  .sch-pins{ display:flex; flex-wrap:wrap; gap:6px 14px; width:100%; margin-top:4px; }
+  .sch-pinrow{ font-family: var(--font-mono); font-size:12px; color: var(--muted); }
+
+  .mono-sm{ font-family: var(--font-mono); font-size:12px; color: var(--cream); }
+  #doc-pick{ display:none; align-items:center; gap:8px; flex-wrap:wrap; padding:9px 16px; border-bottom:1px solid var(--line); background: rgba(201,122,70,0.08); }
+  #doc-pick .sp{ flex:1; }
+  .pin-select{ background: var(--bg-alt); border:1px solid var(--line); border-radius:7px; padding:6px 9px; color: var(--cream); font-size:13px; outline:none; min-width:180px; }
+  .pin-select:focus{ border-color: var(--copper); }
+  #doc-boards{ display:none; border-top:1px solid var(--line); }
+  .doc-boards-head{ padding:12px 16px; font-family: var(--font-display); font-weight:600; font-size:14px; color: var(--cream); }
+  .doc-boards-head .hint{ font-family: var(--font-body); font-weight:400; }
+
   /* 3D viewer modal */
   .viewer-modal{ position:fixed; inset:0; background: rgba(5,9,6,0.78); backdrop-filter: blur(3px); display:none; align-items:center; justify-content:center; z-index:100; padding:18px; }
   .viewer-modal.open{ display:flex; }
@@ -478,7 +525,15 @@
 
   <div class="tab-panel" id="tab-schematy">
   <div class="panel">
-    <h2>Schematy i dokumenty <span class="sub">prywatne — tylko po zalogowaniu na Twoje konto Google</span>
+    <h2>Schematy płytek <span class="sub">schemat (.fsch / .sch) i model 3D (STL) każdej płytki z zakładki Projekty</span></h2>
+    <div class="info-note" style="margin-top:0;">Schematy i modele zapisują się na Twoim Dysku Google, nie na GitHubie. Schemat rysuje się w przeglądarce: zoom kółkiem, przesuwanie przeciąganiem, kliknięcie sieci pokazuje jej piny, kliknięcie elementu — jego połączenia.</div>
+  </div>
+  <div class="table-wrap" style="margin-bottom:22px;"><div id="board-sch-list"><div class="loading-state">Wczytywanie…</div></div></div>
+  <input type="file" id="pcb-sch-input" accept=".fsch,.sch" style="display:none;">
+  <input type="file" id="pcb-3d-input" accept=".stl,model/stl,application/sla" style="display:none;">
+
+  <div class="panel">
+    <h2>Dokumenty i okablowanie <span class="sub">prywatne — tylko po zalogowaniu na Twoje konto Google</span>
       <button class="btn-mini" id="btn-doc-add" type="button" style="margin-left:auto;">⇪ Dodaj plik HTML</button>
       <input type="file" id="doc-add-file" accept=".html,.htm,text/html" style="display:none;">
     </h2>
@@ -491,11 +546,29 @@
       <button class="btn-mini" id="doc-full" type="button">⛶ Pełny ekran</button>
       <button class="icon-btn" id="doc-close" type="button" title="Zamknij">✕</button>
     </div>
+    <div id="doc-pick"></div>
     <div id="doc-frame-wrap" style="position:relative; height:82vh; background:#fff;">
       <div class="viewer-status" id="doc-status" style="background:var(--bg-alt);">Wczytywanie dokumentu…</div>
       <iframe id="doc-frame" sandbox="allow-scripts" referrerpolicy="no-referrer" style="width:100%; height:100%; border:0; display:none;"></iframe>
     </div>
+    <div id="doc-boards"></div>
   </div>
+  </div>
+</div>
+
+<div class="viewer-modal" id="sch-modal">
+  <div class="viewer-box sch-box">
+    <div class="viewer-head sch-head">
+      <div class="vt" id="sch-title">Schemat</div>
+      <div id="sch-sheets"></div>
+      <input id="sch-search" list="sch-search-list" placeholder="Szukaj: U1, J10, MISO…" autocomplete="off"><datalist id="sch-search-list"></datalist>
+      <button class="btn-mini" id="sch-zin" type="button">+</button>
+      <button class="btn-mini" id="sch-zout" type="button">−</button>
+      <button class="btn-mini" id="sch-fit" type="button">⌂ Cały arkusz</button>
+      <button class="icon-btn" id="sch-close" type="button" title="Zamknij">✕</button>
+    </div>
+    <div class="sch-stage" id="sch-stage"><svg id="sch-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg><div class="viewer-status" id="sch-status">Wczytywanie schematu…</div></div>
+    <div class="sch-info" id="sch-info"></div>
   </div>
 </div>
 
@@ -964,7 +1037,7 @@ async function connectGoogleDriveFlow(){
     localStorage.setItem("preferredBackend", "gdrive");
     render(); renderShopping(); renderTodos(); renderPcbs(); renderStorageBar(); refreshShoppingLinkOptions();
     renderDocs();
-    syncPendingStlUploads().then(syncPendingDocUploads);
+    syncPendingStlUploads().then(syncPendingDocUploads).then(syncPendingPcbFiles);
   }catch(e){
     toast("Nie udało się połączyć z Google Drive");
   }
@@ -1657,6 +1730,7 @@ async function deletePcb(pcbId){
   const p = pcbs.find(x => x.id === pcbId);
   if(!p) return;
   if(!confirm(`Usunąć płytkę „${p.name}” razem z listą jej elementów? Zwolni to wszystkie zablokowane rezerwacje.`)) return;
+  await removePcbFiles(p);
   pcbs = pcbs.filter(x => x.id !== pcbId);
   await saveAll();
   renderPcbs();
@@ -1839,6 +1913,8 @@ async function deletePcbPart(pcbId, partId){
 }
 
 function renderPcbs(){
+  renderBoardSchematics();
+  renderDocBoards();
   const listEl = $("#pcb-list");
   if(pcbs.length === 0){
     listEl.innerHTML = `<div class="table-wrap"><div class="empty"><div class="big">Brak płytek</div>Dodaj płytkę powyżej, żeby zacząć przypisywać do niej elementy z magazynu.</div></div>`;
@@ -1859,6 +1935,7 @@ function renderPcbs(){
           ${p.notes ? `<div class="item-loc">${escapeHtml(p.notes)}</div>` : ""}
         </div>
         <span class="hint">${reservedParts}/${totalParts} zablokowanych</span>
+        ${pcbFileButtons(p)}
         <button class="btn-mini" data-pcb-bom-btn="${p.id}">⇪ Importuj BOM</button>
         <input type="file" id="pcb-bom-file-${p.id}" accept=".csv,.txt,.tsv,text/csv,text/plain" style="display:none;">
         <button class="icon-btn del" title="Usuń płytkę" data-pcb-del="${p.id}">✕</button>
@@ -1912,6 +1989,7 @@ function renderPcbs(){
   listEl.querySelectorAll("[data-pcb-partdel]").forEach(btn => btn.addEventListener("click", () => deletePcbPart(btn.dataset.pcbId, btn.dataset.pcbPartdel)));
   listEl.querySelectorAll("[data-pcb-shortfall-add]").forEach(btn => btn.addEventListener("click", () => addShortfallToShopping(btn.dataset.pcbShortfallAdd, btn.dataset.partId)));
   listEl.querySelectorAll("[data-pcb-shortfall-all]").forEach(btn => btn.addEventListener("click", () => addAllShortfallsToShopping(btn.dataset.pcbShortfallAll)));
+  wirePcbFileButtons(listEl);
   listEl.querySelectorAll("[data-pcb-bom-btn]").forEach(btn => btn.addEventListener("click", () => {
     const inp = document.getElementById(`pcb-bom-file-${btn.dataset.pcbBomBtn}`);
     if(inp) inp.click();
@@ -2193,20 +2271,30 @@ let viewer = null;
 async function openViewer(printId){
   const pr = prints.find(x => x.id === printId);
   if(!pr || !pr.stl) return;
+  openModelViewer({
+    title: pr.name + (pr.stl.fileName ? "  ·  " + pr.stl.fileName : ""),
+    dims: pr.dims,
+    load: () => getStlBuffer(pr),
+    setDims: d => { pr.dims = d; }
+  });
+}
+
+async function openModelViewer(o){
   closeViewer();
   $("#viewer-modal").classList.add("open");
-  $("#viewer-title").textContent = pr.name + (pr.stl.fileName ? "  ·  " + pr.stl.fileName : "");
-  $("#viewer-dims").textContent = pr.dims ? `Wymiary: ${pr.dims.x} × ${pr.dims.y} × ${pr.dims.z} mm` : "";
+  $("#viewer-title").textContent = o.title || "Podgląd 3D";
+  $("#viewer-dims").textContent = o.dims ? `Wymiary: ${o.dims.x} × ${o.dims.y} × ${o.dims.z} mm` : "";
   const status = $("#viewer-status");
   status.style.display = "flex";
   status.textContent = "Wczytywanie modelu…";
   try{
     await loadThree();
-    const buf = await getStlBuffer(pr);
+    const buf = await o.load();
     if(!$("#viewer-modal").classList.contains("open")) return;
     const built = buildGeometry(parseSTL(buf));
-    if(!pr.dims){ pr.dims = { x: +built.dims.x.toFixed(1), y: +built.dims.y.toFixed(1), z: +built.dims.z.toFixed(1) }; }
-    $("#viewer-dims").textContent = `Wymiary: ${pr.dims.x} × ${pr.dims.y} × ${pr.dims.z} mm`;
+    const dims = o.dims || { x: +built.dims.x.toFixed(1), y: +built.dims.y.toFixed(1), z: +built.dims.z.toFixed(1) };
+    if(!o.dims && o.setDims) o.setDims(dims);
+    $("#viewer-dims").textContent = `Wymiary: ${dims.x} × ${dims.y} × ${dims.z} mm`;
     startViewer(built.geo);
     status.style.display = "none";
   }catch(e){
@@ -2785,8 +2873,10 @@ async function openDoc(id){
   try{
     const html = await getDocHtml(d);
     if(openDocId !== id) return;
-    frame.srcdoc = html;
+    docPick = null;
+    frame.srcdoc = injectWiringBridge(html);
     frame.style.display = "block";
+    renderDocBoards();
     status.style.display = "none";
   }catch(e){
     status.textContent = e.message || "Nie udało się wczytać dokumentu";
@@ -2796,9 +2886,11 @@ async function openDoc(id){
 
 function closeDoc(){
   openDocId = null;
+  docPick = null;
   $("#doc-frame").srcdoc = "";
   $("#doc-viewer").style.display = "none";
   renderDocs();
+  renderDocBoards();
 }
 
 function renderDocs(){
@@ -2856,6 +2948,895 @@ function wireDocsModule(){
   });
 }
 
+/* =====================================================================
+   EAGLE / FUSION ELECTRONICS SCHEMATIC VIEWER (.fsch archive or raw .sch XML)
+   Parsing and rendering happen entirely in the browser.
+   ===================================================================== */
+const PIN_LEN = { point: 0, short: 2.54, middle: 5.08, long: 7.62 };
+const JSZIP_URL = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+let jszipPromise = null;
+
+function loadJsZip(){
+  if(window.JSZip) return Promise.resolve(window.JSZip);
+  if(jszipPromise) return jszipPromise;
+  jszipPromise = new Promise((resolve, reject) => {
+    const sc = document.createElement("script");
+    sc.src = JSZIP_URL;
+    sc.onload = () => resolve(window.JSZip);
+    sc.onerror = () => { jszipPromise = null; reject(new Error("Nie udało się wczytać biblioteki ZIP")); };
+    document.head.appendChild(sc);
+  });
+  return jszipPromise;
+}
+
+async function inflateRaw(u8){
+  const stream = new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+// .fsch is a ZIP; the Eagle XML lives in a *.sch inside a folder ending with "electron.BlobParts/"
+async function extractSchXml(buf){
+  const u8 = new Uint8Array(buf);
+  const head = new TextDecoder().decode(u8.subarray(0, Math.min(400, u8.length))).replace(/^\uFEFF/, "").trimStart();
+  if(head.startsWith("<?xml") || head.startsWith("<eagle")) return new TextDecoder().decode(u8);
+  if(!(u8[0] === 0x50 && u8[1] === 0x4b)) throw new Error("To nie jest plik .fsch ani .sch.");
+  if(typeof DecompressionStream !== "function"){
+    const JSZip = await loadJsZip();
+    const z = await JSZip.loadAsync(buf);
+    const names = Object.keys(z.files).filter(n => /\.sch$/i.test(n));
+    const pick = names.find(n => /electron\.BlobParts\//.test(n)) || names[0];
+    if(!pick) throw new Error("W archiwum nie ma pliku schematu (.sch).");
+    return await z.file(pick).async("string");
+  }
+  const dv = new DataView(buf);
+  let eocd = -1;
+  for(let i = u8.length - 22; i >= Math.max(0, u8.length - 66000); i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if(eocd < 0) throw new Error("Uszkodzone archiwum .fsch.");
+  const count = dv.getUint16(eocd + 10, true);
+  let off = dv.getUint32(eocd + 16, true);
+  const entries = [];
+  for(let k = 0; k < count; k++){
+    if(dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const csize = dv.getUint32(off + 20, true);
+    const nlen = dv.getUint16(off + 28, true), xlen = dv.getUint16(off + 30, true), clen = dv.getUint16(off + 32, true);
+    const lho = dv.getUint32(off + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(off + 46, off + 46 + nlen));
+    entries.push({ name, method, csize, lho });
+    off += 46 + nlen + xlen + clen;
+  }
+  const cands = entries.filter(e => /\.sch$/i.test(e.name));
+  const e = cands.find(x => /electron\.BlobParts\//.test(x.name)) || cands[0];
+  if(!e) throw new Error("W archiwum nie ma pliku schematu (.sch).");
+  const ln = dv.getUint16(e.lho + 26, true), lx = dv.getUint16(e.lho + 28, true);
+  const start = e.lho + 30 + ln + lx;
+  const data = u8.subarray(start, start + e.csize);
+  let out;
+  if(e.method === 0) out = data;
+  else if(e.method === 8) out = await inflateRaw(data);
+  else throw new Error("Nieobsługiwana kompresja w archiwum (" + e.method + ").");
+  return new TextDecoder().decode(out);
+}
+
+function parseEagle(xml){
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  if(doc.getElementsByTagName("parsererror").length) throw new Error("Nieprawidłowy XML schematu.");
+  const root = doc.documentElement;
+  const drawing = root && root.tagName === "eagle" ? [...root.children].find(c => c.tagName === "drawing") : null;
+  const sch = drawing ? [...drawing.children].find(c => c.tagName === "schematic") : null;
+  if(!sch) throw new Error("Plik nie zawiera schematu Eagle.");
+  const kids = (el, tag) => el ? [...el.children].filter(c => c.tagName === tag) : [];
+  const one = (el, tag) => el ? [...el.children].find(c => c.tagName === tag) : null;
+  const libs = {};
+  kids(one(sch, "libraries"), "library").forEach(lib => {
+    const L = { name: lib.getAttribute("name"), symbols: {}, devicesets: {} };
+    kids(one(lib, "symbols"), "symbol").forEach(s => { L.symbols[s.getAttribute("name")] = s; });
+    kids(one(lib, "devicesets"), "deviceset").forEach(ds => {
+      const D = { name: ds.getAttribute("name"), gates: {}, devices: {} };
+      kids(one(ds, "gates"), "gate").forEach(g => { D.gates[g.getAttribute("name")] = g.getAttribute("symbol"); });
+      kids(one(ds, "devices"), "device").forEach(dvc => {
+        const pads = {}, techs = {};
+        kids(one(dvc, "connects"), "connect").forEach(c => { pads[c.getAttribute("gate") + "|" + c.getAttribute("pin")] = c.getAttribute("pad"); });
+        kids(one(dvc, "technologies"), "technology").forEach(t => {
+          const a = {};
+          kids(t, "attribute").forEach(x => { a[(x.getAttribute("name") || "").toUpperCase()] = x.getAttribute("value") || ""; });
+          techs[t.getAttribute("name") || ""] = a;
+        });
+        D.devices[dvc.getAttribute("name") || ""] = { pads, techs };
+      });
+      L.devicesets[D.name] = D;
+    });
+    libs[L.name + "|" + (lib.getAttribute("urn") || "")] = L;
+    if(!libs[L.name]) libs[L.name] = L;
+  });
+  const parts = {};
+  kids(one(sch, "parts"), "part").forEach(p => {
+    const lib = libs[p.getAttribute("library") + "|" + (p.getAttribute("library_urn") || "")] || libs[p.getAttribute("library")];
+    const ds = lib ? lib.devicesets[p.getAttribute("deviceset")] : null;
+    const devName = p.getAttribute("device") || "";
+    const dev = ds ? ds.devices[devName] : null;
+    const tech = p.getAttribute("technology") || "";
+    const attrs = Object.assign({}, dev && dev.techs[tech] || {});
+    kids(p, "attribute").forEach(a => { attrs[(a.getAttribute("name") || "").toUpperCase()] = a.getAttribute("value") || ""; });
+    let value = p.getAttribute("value");
+    if(value === null && ds){
+      let v = ds.name;
+      v = v.includes("*") ? v.replace("*", tech) : v + tech;
+      v = v.includes("?") ? v.replace("?", devName) : v + devName;
+      value = v;
+    }
+    const name = p.getAttribute("name");
+    parts[name] = { name, lib, ds, dev, value: value || "", attrs, device: devName, deviceset: p.getAttribute("deviceset") || "",
+      library: p.getAttribute("library") || "", multiGate: ds ? Object.keys(ds.gates).length > 1 : false };
+  });
+  const sheets = kids(one(sch, "sheets"), "sheet");
+  return { parts, sheets, kids, one };
+}
+
+/* ---------- geometry helpers (Eagle: mm, Y up, rot like "MR90" / "SR0") ---------- */
+function eParseRot(r){ r = r || "R0"; return { m: r.includes("M"), s: r.includes("S"), a: parseFloat(r.replace(/[^0-9.\-]/g, "")) || 0 }; }
+function eApply(t, x, y){
+  if(t.m) x = -x;
+  const r = t.a * Math.PI / 180;
+  let c = Math.cos(r), s = Math.sin(r);
+  if(Math.abs(c) < 1e-12) c = 0; if(Math.abs(s) < 1e-12) s = 0;
+  return [x * c - y * s + t.tx, x * s + y * c + t.ty];
+}
+function eCompose(t1, t2){ const [tx, ty] = eApply(t1, t2.tx, t2.ty); return { m: t1.m !== t2.m, a: t1.a + (t1.m ? -t2.a : t2.a), tx, ty }; }
+const E_ID = { m: false, a: 0, tx: 0, ty: 0 };
+function eNum(el, k, d){ const v = parseFloat(el.getAttribute(k)); return isNaN(v) ? (d || 0) : v; }
+function eEsc(s){ return String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch])); }
+const r3 = v => Math.round(v * 1000) / 1000;
+
+function newBox(){ return { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity }; }
+function boxAdd(b, x, y){ if(x < b.x1) b.x1 = x; if(y < b.y1) b.y1 = y; if(x > b.x2) b.x2 = x; if(y > b.y2) b.y2 = y; }
+function boxMerge(a, b){ if(b.x1 === Infinity) return; boxAdd(a, b.x1, b.y1); boxAdd(a, b.x2, b.y2); }
+
+/* ---------- renderer: one sheet -> SVG markup + lookup tables ---------- */
+function renderEagleSheet(model, sheetIdx){
+  const { parts, kids, one } = model;
+  const sheet = model.sheets[sheetIdx];
+  const out = [];
+  const box = newBox();
+  let boxes = [box];                 // every coordinate grows all boxes on this stack
+  const grow = (x, y) => { for(const b of boxes) boxAdd(b, x, y); };
+  const partBoxes = {};               // part name -> box (svg coords)
+  const pinPos = {};                  // "part|gate|pin" -> [x, y]
+  const pinInfo = {};                 // part name -> [{gate, pin, pad}]
+  const nets = {};                    // net name -> {name, pins:[{part,gate,pin}], box}
+
+  function wire(t, w, cls){
+    const [ax, ay] = eApply(t, eNum(w, "x1"), eNum(w, "y1"));
+    const [bx, by] = eApply(t, eNum(w, "x2"), eNum(w, "y2"));
+    const width = Math.max(eNum(w, "width"), 0.1);
+    let curve = eNum(w, "curve");
+    if(t.m) curve = -curve;
+    let d;
+    if(curve){
+      const chord = Math.hypot(bx - ax, by - ay);
+      const rad = chord / (2 * Math.sin(Math.abs(curve) * Math.PI / 360));
+      d = `M${r3(ax)} ${r3(-ay)}A${r3(rad)} ${r3(rad)} 0 ${Math.abs(curve) > 180 ? 1 : 0} ${curve > 0 ? 0 : 1} ${r3(bx)} ${r3(-by)}`;
+    }else d = `M${r3(ax)} ${r3(-ay)}L${r3(bx)} ${r3(-by)}`;
+    const st = w.getAttribute("style");
+    const dash = st === "shortdash" ? ' stroke-dasharray="0.6 0.6"' : st === "longdash" ? ' stroke-dasharray="2 1"' : st === "dashdot" ? ' stroke-dasharray="2 0.6 0.4 0.6"' : "";
+    out.push(`<path class="${cls}" d="${d}" stroke-width="${r3(width)}"${dash}/>`);
+    grow(ax, -ay); grow(bx, -by);
+    return d;
+  }
+  function circle(t, c, layer){
+    const [cx, cy] = eApply(t, eNum(c, "x"), eNum(c, "y"));
+    const r = eNum(c, "radius"), w = eNum(c, "width");
+    out.push(w > 0
+      ? `<circle class="l${layer}" cx="${r3(cx)}" cy="${r3(-cy)}" r="${r3(r)}" stroke-width="${r3(w)}" fill="none"/>`
+      : `<circle class="f${layer}" cx="${r3(cx)}" cy="${r3(-cy)}" r="${r3(r)}"/>`);
+    grow(cx - r, -cy - r); grow(cx + r, -cy + r);
+  }
+  function rect(t, rEl, layer){
+    const x1 = eNum(rEl, "x1"), y1 = eNum(rEl, "y1"), x2 = eNum(rEl, "x2"), y2 = eNum(rEl, "y2");
+    const own = eParseRot(rEl.getAttribute("rot"));
+    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+    const lt = eCompose(t, { m: own.m, a: own.a, tx: cx, ty: cy });
+    const hw = Math.abs(x2 - x1) / 2, hh = Math.abs(y2 - y1) / 2;
+    const pts = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => { const [px, py] = eApply(lt, x, y); grow(px, -py); return r3(px) + "," + r3(-py); });
+    out.push(`<polygon class="f${layer}" points="${pts.join(" ")}"/>`);
+  }
+  function polygon(t, pEl, layer){
+    const pts = kids(pEl, "vertex").map(v => { const [px, py] = eApply(t, eNum(v, "x"), eNum(v, "y")); grow(px, -py); return r3(px) + "," + r3(-py); });
+    if(pts.length > 2) out.push(`<polygon class="f${layer} l${layer}" points="${pts.join(" ")}" stroke-width="${r3(Math.max(eNum(pEl, "width"), 0.1))}"/>`);
+  }
+  function frame(t, f, layer){
+    const pts = [[eNum(f, "x1"), eNum(f, "y1")], [eNum(f, "x2"), eNum(f, "y1")], [eNum(f, "x2"), eNum(f, "y2")], [eNum(f, "x1"), eNum(f, "y2")]]
+      .map(([x, y]) => { const [px, py] = eApply(t, x, y); grow(px, -py); return r3(px) + "," + r3(-py); });
+    out.push(`<polygon class="l${layer}" points="${pts.join(" ")}" fill="none" stroke-width="0.25"/>`);
+  }
+  function text(t, str, x, y, size, rot, align, layer, extraCls){
+    if(str === null || str === undefined || str === "") return;
+    const own = eParseRot(rot);
+    const tt = eCompose(t, { m: own.m, a: own.a, tx: x, ty: y });
+    let a = ((tt.a % 360) + 360) % 360;
+    const al = (align || "bottom-left").split("-");
+    let v = al.length === 1 ? (al[0] === "center" ? "center" : al[0]) : al[0];
+    let h = al.length === 1 ? "center" : al[1];
+    const flipH = x => x === "left" ? "right" : x === "right" ? "left" : x;
+    const flipV = x => x === "top" ? "bottom" : x === "bottom" ? "top" : x;
+    if(tt.m) h = flipH(h);
+    if(!own.s && a > 90 && a <= 270){ a -= 180; h = flipH(h); v = flipV(v); }  // keep text readable, like Eagle
+    const sz = size || 1.778;
+    const lines = String(str).split("\n");
+    const lh = sz * 1.5, block = (lines.length - 1) * lh;
+    const dy0 = v === "top" ? sz : v === "center" ? sz / 2 - block / 2 : -block;
+    const X = r3(tt.tx), Y = r3(-tt.ty);
+    const anchor = h === "left" ? "start" : h === "right" ? "end" : "middle";
+    const rotAttr = a ? ` transform="rotate(${r3(-a)} ${X} ${Y})"` : "";
+    out.push(`<text class="t${layer}${extraCls ? " " + extraCls : ""}" x="${X}" y="${Y}" font-size="${r3(sz * 1.32)}" text-anchor="${anchor}"${rotAttr}>` +
+      lines.map((ln, i) => `<tspan x="${X}" dy="${r3(i === 0 ? dy0 : lh)}">${eEsc(ln)}</tspan>`).join("") + `</text>`);
+    // approximate extent for bounding boxes
+    const wTxt = Math.max(...lines.map(l => l.length)) * sz * 0.8, hTxt = block + sz;
+    const rad = a * Math.PI / 180, ca = Math.abs(Math.cos(rad)), sa = Math.abs(Math.sin(rad));
+    const ex = (wTxt * ca + hTxt * sa) / 2 + sz * 0.2, ey = (wTxt * sa + hTxt * ca) / 2 + sz * 0.2;
+    grow(X - ex, Y - ey); grow(X + ex, Y + ey);
+  }
+  function primitives(t, el, opts){
+    for(const c of el.children){
+      const layer = c.getAttribute("layer") || "94";
+      if(c.tagName === "wire") wire(t, c, "l" + layer);
+      else if(c.tagName === "circle") circle(t, c, layer);
+      else if(c.tagName === "rectangle") rect(t, c, layer);
+      else if(c.tagName === "polygon") polygon(t, c, layer);
+      else if(c.tagName === "frame") frame(t, c, layer);
+      else if(c.tagName === "text"){
+        let s = c.textContent;
+        if(opts && opts.resolve){ s = opts.resolve(s); if(s === null) continue; }
+        text(t, s, eNum(c, "x"), eNum(c, "y"), eNum(c, "size", 1.778), c.getAttribute("rot"), c.getAttribute("align"), layer);
+      }
+    }
+  }
+  function pin(t, p, part, gateName){
+    const name = p.getAttribute("name");
+    const len = PIN_LEN[p.getAttribute("length") || "long"] ?? 7.62;
+    const pr = eParseRot(p.getAttribute("rot"));
+    const pt = eCompose(t, { m: pr.m, a: pr.a, tx: eNum(p, "x"), ty: eNum(p, "y") });
+    const vis = p.getAttribute("visible") || "both";
+    const fn = p.getAttribute("function") || "none";
+    const dot = fn === "dot" || fn === "dotclk", clk = fn === "clk" || fn === "dotclk";
+    const lineEnd = dot ? Math.max(0, len - 1.4) : len;
+    if(lineEnd > 0){
+      const [ax, ay] = eApply(pt, 0, 0), [bx, by] = eApply(pt, lineEnd, 0);
+      out.push(`<path class="l94 pinline" d="M${r3(ax)} ${r3(-ay)}L${r3(bx)} ${r3(-by)}" stroke-width="0.1524"/>`);
+      grow(ax, -ay); grow(bx, -by);
+    }
+    if(dot){ const [cx, cy] = eApply(pt, len - 0.7, 0); out.push(`<circle class="l94" cx="${r3(cx)}" cy="${r3(-cy)}" r="0.7" stroke-width="0.1524" fill="none"/>`); }
+    if(clk){
+      const ps = [[len, 0.8], [len + 1.6, 0], [len, -0.8]].map(([x, y]) => { const [px, py] = eApply(pt, x, y); return r3(px) + "," + r3(-py); });
+      out.push(`<polyline class="l94" points="${ps.join(" ")}" fill="none" stroke-width="0.1524"/>`);
+    }
+    const pad = part.dev ? part.dev.pads[gateName + "|" + name] : null;
+    if((vis === "both" || vis === "pin")) text(pt, name.replace(/@\d+$/, ""), len + 0.9, 0, 1.6, "R0", "center-left", "pinname");
+    if((vis === "both" || vis === "pad") && pad && len > 0) text(pt, pad.split(" ")[0], len / 2, 0.45, 1.2, "R0", "bottom-center", "93");
+    const [cx, cy] = eApply(pt, 0, 0);
+    pinPos[part.name + "|" + gateName + "|" + name] = [r3(cx), r3(-cy)];
+    (pinInfo[part.name] || (pinInfo[part.name] = [])).push({ gate: gateName, pin: name, pad: pad || "" });
+  }
+
+  const plain = one(sheet, "plain");
+  if(plain){ out.push(`<g class="sch-plain">`); primitives(E_ID, plain); out.push(`</g>`); }
+
+  kids(one(sheet, "instances"), "instance").forEach(inst => {
+    const part = parts[inst.getAttribute("part")];
+    if(!part || !part.ds || !part.lib) return;
+    const gateName = inst.getAttribute("gate");
+    const sym = part.lib.symbols[part.ds.gates[gateName]];
+    if(!sym) return;
+    const r = eParseRot(inst.getAttribute("rot"));
+    const t = { m: r.m, a: r.a, tx: eNum(inst, "x"), ty: eNum(inst, "y") };
+    const instName = part.name + (part.multiGate ? gateName : "");
+    const smashed = inst.getAttribute("smashed") === "yes";
+    const placed = {};
+    kids(inst, "attribute").forEach(a => { if(a.hasAttribute("x")) placed[(a.getAttribute("name") || "").toUpperCase()] = a; });
+    const resolveKey = key => key === "NAME" ? instName : key === "VALUE" ? part.value : key === "PART" ? part.name : key === "GATE" ? gateName : (part.attrs[key] || "");
+    const pbox = partBoxes[part.name] || (partBoxes[part.name] = newBox());
+    const gbox = newBox();
+    boxes = [box, pbox, gbox];
+    const hitIdx = out.length;
+    out.push("");
+    out.push(`<g class="sch-sym">`);
+    primitives(t, sym, { resolve: s => {
+      if(!s.startsWith(">")) return s;
+      const key = s.slice(1).toUpperCase();
+      if(smashed && placed[key]) return null;
+      return resolveKey(key);
+    }});
+    kids(sym, "pin").forEach(p => pin(t, p, part, gateName));
+    out.push(`</g>`);
+    const geomBox = { ...gbox };
+    if(smashed){
+      Object.entries(placed).forEach(([key, a]) => {
+        const disp = a.getAttribute("display") || "value";
+        if(disp === "off") return;
+        const val = resolveKey(key);
+        const s = disp === "name" ? key : disp === "both" ? key + "=" + val : val;
+        text(E_ID, s, eNum(a, "x"), eNum(a, "y"), eNum(a, "size", 1.778), a.getAttribute("rot"), a.getAttribute("align"), a.getAttribute("layer") || (key === "VALUE" ? "96" : "95"));
+      });
+    }
+    boxes = [box];
+    if(geomBox.x1 !== Infinity){
+      out[hitIdx] = `<g class="sch-part" data-part="${eEsc(part.name)}"><rect class="sch-hit" x="${r3(geomBox.x1)}" y="${r3(geomBox.y1)}" width="${r3(geomBox.x2 - geomBox.x1)}" height="${r3(geomBox.y2 - geomBox.y1)}"/>`;
+      out.push(`</g>`);
+    }else{
+      out[hitIdx] = `<g class="sch-part" data-part="${eEsc(part.name)}">`;
+      out.push(`</g>`);
+    }
+  });
+
+  const segments = (container, kind) => kids(one(sheet, container), kind).forEach(n => {
+    const nm = n.getAttribute("name") || "";
+    const isNet = kind === "net";
+    const rec = isNet ? (nets[nm] || (nets[nm] = { name: nm, pins: [], box: newBox() })) : null;
+    boxes = rec ? [box, rec.box] : [box];
+    out.push(`<g class="${isNet ? "sch-net" : "sch-bus"}" data-${isNet ? "net" : "bus"}="${eEsc(nm)}">`);
+    kids(n, "segment").forEach(seg => {
+      for(const c of seg.children){
+        if(c.tagName === "wire"){
+          const d = wire(E_ID, c, (isNet ? "l91" : "l92") + " nw");
+          out.push(`<path class="nhit" d="${d}"/>`);
+        }else if(c.tagName === "junction"){
+          const x = eNum(c, "x"), y = -eNum(c, "y");
+          out.push(`<circle class="f91 jn" cx="${r3(x)}" cy="${r3(y)}" r="0.55"/>`);
+          grow(x, y);
+        }else if(c.tagName === "label"){
+          text(E_ID, nm, eNum(c, "x"), eNum(c, "y"), eNum(c, "size", 1.778), c.getAttribute("rot"), c.getAttribute("align"), c.getAttribute("layer") || "95", "nlabel");
+        }else if(c.tagName === "pinref" && rec){
+          rec.pins.push({ part: c.getAttribute("part"), gate: c.getAttribute("gate"), pin: c.getAttribute("pin") });
+        }
+      }
+    });
+    out.push(`</g>`);
+    boxes = [box];
+  });
+  segments("busses", "bus");
+  segments("nets", "net");
+
+  // pin -> net lookup and net boxes extended with their pins
+  const pinNet = {};
+  Object.values(nets).forEach(n => n.pins.forEach(p => {
+    const k = p.part + "|" + p.gate + "|" + p.pin;
+    pinNet[k] = n.name;
+    const pos = pinPos[k];
+    if(pos) boxAdd(n.box, pos[0], pos[1]);
+  }));
+  return { svg: out.join(""), box, partBoxes, pinPos, pinInfo, nets, pinNet };
+}
+
+/* ---------- viewer modal ---------- */
+let schView = null;  // { model, sheetIdx, r, title, vb, sel }
+
+function schPinLabel(model, p){
+  const part = model.parts[p.part];
+  const shortPin = p.pin.replace(/@\d+$/, "").replace(/\(.*$/, "");
+  const pad = part && part.dev ? part.dev.pads[p.gate + "|" + p.pin] : null;
+  if(part && part.multiGate && pad) return p.part + "." + pad.split(" ")[0];
+  return p.part + "." + shortPin;
+}
+
+async function openSchematicViewer(opts){
+  // opts: { title, load: async () => ArrayBuffer, focusPart }
+  closeSchematicViewer();
+  const modal = $("#sch-modal");
+  modal.classList.add("open");
+  $("#sch-title").textContent = opts.title || "Schemat";
+  $("#sch-svg").innerHTML = "";
+  $("#sch-sheets").innerHTML = "";
+  $("#sch-info").innerHTML = `<span class="hint">Kliknij sieć, żeby zobaczyć jej piny, albo element, żeby zobaczyć jego połączenia.</span>`;
+  const status = $("#sch-status");
+  status.style.display = "flex";
+  status.textContent = "Wczytywanie schematu…";
+  try{
+    const buf = await opts.load();
+    const model = parseEagle(await extractSchXml(buf));
+    if(!modal.classList.contains("open")) return;
+    if(!model.sheets.length) throw new Error("Schemat nie ma żadnego arkusza.");
+    schView = { model, sheetIdx: 0, r: null, vb: null, sel: null };
+    if(model.sheets.length > 1){
+      $("#sch-sheets").innerHTML = model.sheets.map((_, i) => `<button class="btn-mini${i === 0 ? " on" : ""}" data-sch-sheet="${i}">Arkusz ${i + 1}</button>`).join("");
+    }
+    status.style.display = "none";
+    let startSheet = 0;
+    if(opts.focusPart){
+      const fp = opts.focusPart.toUpperCase();
+      const idx = model.sheets.findIndex(s => [...s.getElementsByTagName("instance")].some(i => (i.getAttribute("part") || "").toUpperCase() === fp));
+      if(idx >= 0) startSheet = idx;
+    }
+    schShowSheet(startSheet);
+    if(opts.focusPart){
+      const name = Object.keys(schView.r.partBoxes).find(n => n.toUpperCase() === opts.focusPart.toUpperCase());
+      if(name){ schSelectPart(name); schZoomToBox(schView.r.partBoxes[name], 4); }
+      else toast(`Nie znaleziono ${opts.focusPart} na schemacie`);
+    }
+  }catch(e){
+    status.style.display = "flex";
+    status.textContent = e.message || "Nie udało się wczytać schematu.";
+  }
+}
+
+function schShowSheet(i){
+  if(!schView) return;
+  schView.sheetIdx = i;
+  schView.sel = null;
+  const r = renderEagleSheet(schView.model, i);
+  schView.r = r;
+  const svgEl = $("#sch-svg");
+  svgEl.innerHTML = `<g id="sch-content">${r.svg}</g><g id="sch-overlay"></g>`;
+  svgEl.classList.remove("has-sel");
+  document.querySelectorAll("[data-sch-sheet]").forEach(b => b.classList.toggle("on", +b.dataset.schSheet === i));
+  const names = [...Object.keys(r.partBoxes), ...Object.keys(r.nets).filter(n => n)];
+  $("#sch-search-list").innerHTML = names.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(n => `<option value="${eEsc(n)}">`).join("");
+  schFit();
+  $("#sch-info").innerHTML = `<span class="hint">${Object.keys(r.partBoxes).length} elementów · ${Object.keys(r.nets).length} sieci. Kliknij sieć albo element.</span>`;
+}
+
+function schApplyVb(){ const v = schView.vb; $("#sch-svg").setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`); }
+function schZoomToBox(b, margin){
+  if(!schView || !b || b.x1 === Infinity) return;
+  const m = margin ?? 5;
+  const w = Math.max(b.x2 - b.x1 + 2 * m, 20), h = Math.max(b.y2 - b.y1 + 2 * m, 14);
+  const cx = (b.x1 + b.x2) / 2, cy = (b.y1 + b.y2) / 2;
+  schView.vb = { x: cx - w / 2, y: cy - h / 2, w, h };
+  schApplyVb();
+}
+function schFit(){ if(schView && schView.r) schZoomToBox(schView.r.box, 6); }
+function schZoomAt(f, clientX, clientY){
+  if(!schView || !schView.vb) return;
+  const svgEl = $("#sch-svg"), rc = svgEl.getBoundingClientRect(), v = schView.vb;
+  const s = Math.max(v.w / rc.width, v.h / rc.height);
+  const ox = (rc.width - v.w / s) / 2, oy = (rc.height - v.h / s) / 2;
+  const px = v.x + (clientX - rc.left - ox) * s, py = v.y + (clientY - rc.top - oy) * s;
+  const full = schView.r.box, maxW = Math.max(full.x2 - full.x1, full.y2 - full.y1) * 3;
+  const nw = Math.min(maxW, Math.max(4, v.w * f)), k = nw / v.w;
+  schView.vb = { x: px - (px - v.x) * k, y: py - (py - v.y) * k, w: nw, h: v.h * k };
+  schApplyVb();
+}
+
+function schClearSel(){
+  if(!schView) return;
+  schView.sel = null;
+  const svgEl = $("#sch-svg");
+  svgEl.classList.remove("has-sel");
+  svgEl.querySelectorAll(".sel, .rel").forEach(e => e.classList.remove("sel", "rel"));
+  $("#sch-overlay").innerHTML = "";
+  $("#sch-info").innerHTML = `<span class="hint">Kliknij sieć albo element.</span>`;
+}
+function schMarkPins(keys){
+  $("#sch-overlay").innerHTML = keys.map(k => schView.r.pinPos[k]).filter(Boolean)
+    .map(([x, y]) => `<circle class="pin-hl" cx="${x}" cy="${y}" r="0.9"/>`).join("");
+}
+function cssEsc(s){ return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&"); }
+
+function schSelectNet(name){
+  if(!schView) return;
+  const n = schView.r.nets[name];
+  if(!n) return;
+  schClearSel();
+  schView.sel = { kind: "net", name };
+  const svgEl = $("#sch-svg");
+  svgEl.classList.add("has-sel");
+  svgEl.querySelectorAll(`[data-net="${cssEsc(name)}"]`).forEach(e => e.classList.add("sel"));
+  const partsInNet = [...new Set(n.pins.map(p => p.part))];
+  partsInNet.forEach(p => svgEl.querySelectorAll(`[data-part="${cssEsc(p)}"]`).forEach(e => e.classList.add("rel")));
+  schMarkPins(n.pins.map(p => p.part + "|" + p.gate + "|" + p.pin));
+  const chips = n.pins.slice().sort((a, b) => a.part.localeCompare(b.part, undefined, { numeric: true }))
+    .map(p => `<button class="sch-chip" data-sch-part="${eEsc(p.part)}" title="${eEsc(p.part + " · pin " + p.pin)}">${eEsc(schPinLabel(schView.model, p))}</button>`).join("");
+  $("#sch-info").innerHTML = `<b class="sch-net-name">${eEsc(name)}</b><span class="hint">${n.pins.length} pin(ów):</span> ${chips || '<span class="hint">brak pinów</span>'}`;
+}
+
+function schSelectPart(name){
+  if(!schView) return;
+  const part = schView.model.parts[name];
+  if(!part) return;
+  schClearSel();
+  schView.sel = { kind: "part", name };
+  const svgEl = $("#sch-svg");
+  svgEl.classList.add("has-sel");
+  svgEl.querySelectorAll(`[data-part="${cssEsc(name)}"]`).forEach(e => e.classList.add("sel"));
+  const pins = (schView.r.pinInfo[name] || []).slice();
+  const netsOfPart = new Set();
+  pins.forEach(p => { const nn = schView.r.pinNet[name + "|" + p.gate + "|" + p.pin]; if(nn) netsOfPart.add(nn); });
+  netsOfPart.forEach(nn => svgEl.querySelectorAll(`[data-net="${cssEsc(nn)}"]`).forEach(e => e.classList.add("rel")));
+  schMarkPins(pins.map(p => name + "|" + p.gate + "|" + p.pin));
+  pins.sort((a, b) => (a.pad || a.pin).localeCompare(b.pad || b.pin, undefined, { numeric: true }));
+  const rows = pins.map(p => {
+    const nn = schView.r.pinNet[name + "|" + p.gate + "|" + p.pin];
+    const label = (part.multiGate ? p.gate + "." : "") + p.pin.replace(/@\d+$/, "") + (p.pad ? ` (${p.pad.split(" ")[0]})` : "");
+    return `<span class="sch-pinrow">${eEsc(label)} → ${nn ? `<button class="sch-chip" data-sch-net="${eEsc(nn)}">${eEsc(nn)}</button>` : '<span class="hint">niepodłączony</span>'}</span>`;
+  }).join("");
+  $("#sch-info").innerHTML = `<b class="sch-net-name">${eEsc(name)}</b><span>${eEsc(part.value)}</span><span class="hint">${eEsc(part.deviceset + part.device)} · ${eEsc(part.library)}</span><div class="sch-pins">${rows}</div>`;
+}
+
+function schSearch(q){
+  if(!schView || !q) return;
+  const r = schView.r, Q = q.trim().toUpperCase();
+  const part = Object.keys(r.partBoxes).find(n => n.toUpperCase() === Q);
+  if(part){ schSelectPart(part); schZoomToBox(r.partBoxes[part], 4); return; }
+  const net = Object.keys(r.nets).find(n => n.toUpperCase() === Q) || Object.keys(r.nets).find(n => n.toUpperCase().includes(Q));
+  if(net){ schSelectNet(net); schZoomToBox(r.nets[net].box, 6); return; }
+  const part2 = Object.keys(r.partBoxes).find(n => n.toUpperCase().includes(Q) || (schView.model.parts[n] && schView.model.parts[n].value.toUpperCase().includes(Q)));
+  if(part2){ schSelectPart(part2); schZoomToBox(r.partBoxes[part2], 4); return; }
+  toast(`Nie znaleziono „${q}” na tym arkuszu`);
+}
+
+function closeSchematicViewer(){
+  schView = null;
+  const m = $("#sch-modal");
+  if(m) m.classList.remove("open");
+  const s = $("#sch-svg");
+  if(s) s.innerHTML = "";
+}
+
+function wireSchematicViewer(){
+  const stage = $("#sch-stage"), svgEl = $("#sch-svg");
+  let drag = null, moved = false;
+  const pointers = new Map();
+  let pinch = null;
+  stage.addEventListener("pointerdown", (e) => {
+    if(!schView || !schView.vb) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    stage.setPointerCapture(e.pointerId);
+    if(pointers.size === 1){ drag = { x: e.clientX, y: e.clientY, vx: schView.vb.x, vy: schView.vb.y }; moved = false; }
+    else if(pointers.size === 2){
+      const [a, b] = [...pointers.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+      drag = null; moved = true;
+    }
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if(!pointers.has(e.pointerId) || !schView) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if(pinch && pointers.size === 2){
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if(d > 0){ schZoomAt(pinch.d / d, pinch.cx, pinch.cy); pinch.d = d; }
+      return;
+    }
+    if(!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if(!moved && Math.hypot(dx, dy) > 4){ moved = true; stage.classList.add("dragging"); }
+    if(moved){
+      const rc = svgEl.getBoundingClientRect(), v = schView.vb;
+      const s = Math.max(v.w / rc.width, v.h / rc.height);
+      v.x = drag.vx - dx * s; v.y = drag.vy - dy * s;
+      schApplyVb();
+    }
+  });
+  const end = (e) => {
+    pointers.delete(e.pointerId);
+    if(pointers.size < 2) pinch = null;
+    if(pointers.size === 0){ drag = null; stage.classList.remove("dragging"); setTimeout(() => { moved = false; }, 0); }
+  };
+  stage.addEventListener("pointerup", end);
+  stage.addEventListener("pointercancel", end);
+  stage.addEventListener("wheel", (e) => { e.preventDefault(); schZoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY); }, { passive: false });
+  svgEl.addEventListener("click", (e) => {
+    if(moved || !schView) return;
+    const n = e.target.closest("[data-net]");
+    if(n){ schSelectNet(n.getAttribute("data-net")); return; }
+    const p = e.target.closest("[data-part]");
+    if(p){ schSelectPart(p.getAttribute("data-part")); return; }
+    schClearSel();
+  });
+  $("#sch-info").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-sch-net],[data-sch-part]");
+    if(!b || !schView) return;
+    if(b.dataset.schNet){ schSelectNet(b.dataset.schNet); schZoomToBox(schView.r.nets[b.dataset.schNet].box, 6); }
+    else { schSelectPart(b.dataset.schPart); schZoomToBox(schView.r.partBoxes[b.dataset.schPart], 4); }
+  });
+  $("#sch-sheets").addEventListener("click", (e) => { const b = e.target.closest("[data-sch-sheet]"); if(b) schShowSheet(+b.dataset.schSheet); });
+  $("#sch-fit").addEventListener("click", schFit);
+  const center = () => { const rc = svgEl.getBoundingClientRect(); return [rc.left + rc.width / 2, rc.top + rc.height / 2]; };
+  $("#sch-zin").addEventListener("click", () => { const [x, y] = center(); schZoomAt(1 / 1.4, x, y); });
+  $("#sch-zout").addEventListener("click", () => { const [x, y] = center(); schZoomAt(1.4, x, y); });
+  $("#sch-close").addEventListener("click", closeSchematicViewer);
+  $("#sch-modal").addEventListener("click", (e) => { if(e.target.id === "sch-modal") closeSchematicViewer(); });
+  $("#sch-search").addEventListener("keydown", (e) => { if(e.key === "Enter"){ schSearch(e.target.value); } });
+  $("#sch-search").addEventListener("change", (e) => { if(e.target.value) schSearch(e.target.value); });
+  document.addEventListener("keydown", (e) => {
+    if(e.key !== "Escape" || !$("#sch-modal").classList.contains("open")) return;
+    if(schView && schView.sel) schClearSel(); else closeSchematicViewer();
+  });
+}
+
+/* =====================================================================
+   BOARD FILES — schematic (.fsch/.sch) and 3D model (STL) per PCB card,
+   board list in the Schematy tab, pinning wiring-document boards to PCB cards
+   ===================================================================== */
+let pcbFileTarget = null;   // { pcbId, kind: "sch" | "3d" }
+let docPick = null;         // last board clicked inside the wiring document
+
+async function driveUploadAny(name, buf, mime){
+  const headers = { Authorization: "Bearer " + driveAccessToken };
+  const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ name, mimeType: mime })
+  });
+  if(!createRes.ok) throw new Error("create failed");
+  const created = await createRes.json();
+  const up = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${created.id}?uploadType=media`, {
+    method: "PATCH", headers: { ...headers, "Content-Type": "application/octet-stream" }, body: buf
+  });
+  if(!up.ok) throw new Error("upload failed");
+  return created.id;
+}
+
+function pcbFileKey(p, kind){ return (kind === "sch" ? "sch:" : "pcb3d:") + p.id; }
+function pcbFileMeta(p, kind){ return kind === "sch" ? p.sch : p.model3d; }
+
+async function getPcbFile(p, kind){
+  const key = pcbFileKey(p, kind), meta = pcbFileMeta(p, kind);
+  let buf = await stlGet(key);
+  if(buf) return buf;
+  if(meta && meta.driveFileId){
+    if(!driveUsable()) throw new Error("Plik jest na Twoim Dysku Google — połącz się z Dyskiem (pasek na górze), żeby go otworzyć.");
+    if(!(await ensureDriveToken())) throw new Error("Nie udało się zalogować do Google.");
+    buf = await driveDownloadBinary(meta.driveFileId);
+    await stlPut(key, buf);
+    return buf;
+  }
+  throw new Error("Brak pliku na tym urządzeniu.");
+}
+
+async function storePcbFile(p, kind, file, buf, extra){
+  const old = pcbFileMeta(p, kind);
+  if(old && old.driveFileId && driveUsable() && await ensureDriveToken()) await driveTrashFile(old.driveFileId);
+  const meta = { fileName: file.name, size: file.size, driveFileId: null, ...extra };
+  if(kind === "sch") p.sch = meta; else p.model3d = meta;
+  await stlPut(pcbFileKey(p, kind), buf);
+  if(driveUsable()){
+    try{
+      if(await ensureDriveToken()) meta.driveFileId = await driveUploadAny((kind === "sch" ? "schemat_" : "model3d_") + file.name, buf, "application/octet-stream");
+    }catch(e){ toast("Zapisano lokalnie — nie udało się wysłać na Dysk"); }
+  }
+}
+
+async function attachPcbFile(pcbId, kind, file){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p || !file) return;
+  const buf = await file.arrayBuffer();
+  if(kind === "sch"){
+    let model;
+    try{ model = parseEagle(await extractSchXml(buf)); }
+    catch(e){ toast(e.message || "To nie wygląda na schemat .fsch / .sch"); return; }
+    await storePcbFile(p, "sch", file, buf, { parts: Object.keys(model.parts).length, sheets: model.sheets.length });
+    toast(`Dodano schemat: ${Object.keys(model.parts).length} elementów`);
+  }else{
+    let dims;
+    try{
+      await loadThree();
+      const built = buildGeometry(parseSTL(buf));
+      dims = { x: +built.dims.x.toFixed(1), y: +built.dims.y.toFixed(1), z: +built.dims.z.toFixed(1) };
+      built.geo.dispose();
+    }catch(e){ toast("Nie udało się odczytać pliku STL"); return; }
+    await storePcbFile(p, "3d", file, buf, { dims });
+    toast("Dodano model 3D płytki");
+  }
+  await saveAll();
+  renderPcbs();
+}
+
+function pickPcbFile(pcbId, kind){
+  pcbFileTarget = { pcbId, kind };
+  const inp = $(kind === "sch" ? "#pcb-sch-input" : "#pcb-3d-input");
+  inp.value = "";
+  inp.click();
+}
+
+function openPcbSchematic(pcbId, focusPart){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  if(!p.sch){ pickPcbFile(pcbId, "sch"); return; }
+  openSchematicViewer({ title: p.name + "  ·  " + p.sch.fileName, load: () => getPcbFile(p, "sch"), focusPart });
+}
+
+function openPcbModel(pcbId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  if(!p.model3d){ pickPcbFile(pcbId, "3d"); return; }
+  openModelViewer({
+    title: p.name + "  ·  " + p.model3d.fileName,
+    dims: p.model3d.dims,
+    load: () => getPcbFile(p, "3d"),
+    setDims: d => { p.model3d.dims = d; }
+  });
+}
+
+async function removePcbFiles(p){
+  for(const kind of ["sch", "3d"]){
+    const meta = pcbFileMeta(p, kind);
+    if(meta && meta.driveFileId && driveUsable() && await ensureDriveToken()) await driveTrashFile(meta.driveFileId);
+    await stlDel(pcbFileKey(p, kind));
+  }
+}
+
+async function syncPendingPcbFiles(){
+  if(!driveUsable()) return;
+  let uploaded = 0;
+  for(const p of pcbs){
+    for(const kind of ["sch", "3d"]){
+      const meta = pcbFileMeta(p, kind);
+      if(!meta || meta.driveFileId) continue;
+      const buf = await stlGet(pcbFileKey(p, kind));
+      if(!buf) continue;
+      try{
+        if(!(await ensureDriveToken())) return;
+        meta.driveFileId = await driveUploadAny((kind === "sch" ? "schemat_" : "model3d_") + meta.fileName, buf, "application/octet-stream");
+        uploaded++;
+      }catch(e){}
+    }
+  }
+  if(uploaded){ await saveAll(); renderPcbs(); toast(`Wysłano ${uploaded} plik(i) płytek na Dysk Google`); }
+}
+
+function pcbFileButtons(p, compact){
+  const sch = p.sch
+    ? `<button class="btn-mini" data-pcbf-open="sch" data-pcb="${p.id}" title="${escapeHtml(p.sch.fileName)}">📐 Schemat</button><button class="icon-btn" title="Podmień schemat" data-pcbf-pick="sch" data-pcb="${p.id}">↻</button>`
+    : `<button class="btn-mini" data-pcbf-pick="sch" data-pcb="${p.id}">📐 Dodaj schemat</button>`;
+  const m3d = p.model3d
+    ? `<button class="btn-mini" data-pcbf-open="3d" data-pcb="${p.id}" title="${escapeHtml(p.model3d.fileName)}">🧊 Model 3D</button><button class="icon-btn" title="Podmień model 3D" data-pcbf-pick="3d" data-pcb="${p.id}">↻</button>`
+    : `<button class="btn-mini" data-pcbf-pick="3d" data-pcb="${p.id}">🧊 Dodaj 3D</button>`;
+  return sch + m3d;
+}
+
+function wirePcbFileButtons(root){
+  root.querySelectorAll("[data-pcbf-open]").forEach(b => b.addEventListener("click", () => {
+    if(b.dataset.pcbfOpen === "sch") openPcbSchematic(b.dataset.pcb); else openPcbModel(b.dataset.pcb);
+  }));
+  root.querySelectorAll("[data-pcbf-pick]").forEach(b => b.addEventListener("click", () => pickPcbFile(b.dataset.pcb, b.dataset.pcbfPick)));
+}
+
+/* ---------- Schematy tab: board list ---------- */
+function renderBoardSchematics(){
+  const el = $("#board-sch-list");
+  if(!el) return;
+  if(pcbs.length === 0){
+    el.innerHTML = `<div class="empty"><div class="big">Brak płytek</div>Płytki dodajesz w zakładce 🛠️ Projekty — potem wgrywasz tu albo na karcie płytki jej schemat i model 3D.</div>`;
+    return;
+  }
+  let html = `<table><thead><tr><th class="nosort">Płytka</th><th class="nosort">Schemat</th><th class="nosort">Model 3D</th><th class="nosort">Akcje</th></tr></thead><tbody>`;
+  pcbs.forEach(p => {
+    const where = m => m ? (m.driveFileId ? "" : ` <span class="hint">· tylko lokalnie</span>`) : "";
+    html += `<tr>
+      <td><div class="item-name">${escapeHtml(p.name)}</div>${p.notes ? `<div class="item-loc">${escapeHtml(p.notes)}</div>` : ""}</td>
+      <td>${p.sch ? `<span class="mono-sm">${escapeHtml(p.sch.fileName)}</span>${p.sch.parts ? `<div class="item-loc">${p.sch.parts} elementów${p.sch.sheets > 1 ? ` · ${p.sch.sheets} arkusze` : ""}</div>` : ""}${where(p.sch)}` : `<span class="hint">—</span>`}</td>
+      <td>${p.model3d ? `<span class="mono-sm">${escapeHtml(p.model3d.fileName)}</span>${p.model3d.dims ? `<div class="item-loc">${p.model3d.dims.x}×${p.model3d.dims.y}×${p.model3d.dims.z} mm</div>` : ""}${where(p.model3d)}` : `<span class="hint">—</span>`}</td>
+      <td><div class="row-actions" style="flex-wrap:wrap;">${pcbFileButtons(p)}</div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+  wirePcbFileButtons(el);
+}
+
+/* ---------- wiring document: boards found in it, pinned to PCB cards ---------- */
+const WIRING_BRIDGE = `\x3Cscript>(function(){
+function send(m){ try{ m.__wv = 1; parent.postMessage(m, "*"); }catch(e){} }
+function boards(){
+  var out = [], seen = {};
+  document.querySelectorAll("[data-board]").forEach(function(g){
+    var id = g.getAttribute("data-board"); if(!id || seen[id]) return; seen[id] = 1;
+    var t = g.querySelector(".t-title") || g.querySelector("text"), s = g.querySelector(".t-sub");
+    out.push({ id: id, name: t ? t.textContent : id, sub: s ? s.textContent : "" });
+  });
+  send({ type: "boards", boards: out });
+}
+document.addEventListener("click", function(e){
+  if(!e.target.closest) return;
+  var b = e.target.closest("[data-board]"); if(!b) return;
+  var c = e.target.closest("[data-conn]");
+  send({ type: "pick", board: b.getAttribute("data-board"), conn: c ? c.getAttribute("data-conn") : null });
+}, true);
+if(document.readyState === "complete") setTimeout(boards, 60); else window.addEventListener("load", function(){ setTimeout(boards, 60); });
+})();\x3C/script>`;
+
+function injectWiringBridge(html){
+  const i = html.toLowerCase().lastIndexOf("</body>");
+  return i >= 0 ? html.slice(0, i) + WIRING_BRIDGE + html.slice(i) : html + WIRING_BRIDGE;
+}
+
+function docBoardLabel(b){ return b.name + (b.sub ? " · " + b.sub : ""); }
+
+function pcbSelectHtml(selected){
+  return `<option value="">— nieprzypięta —</option>` + pcbs.map(p => `<option value="${p.id}"${p.id === selected ? " selected" : ""}>${escapeHtml(p.name)}</option>`).join("");
+}
+
+function pinnedActions(p, focusConn){
+  if(!p) return "";
+  let h = p.sch
+    ? `<button class="btn-mini" data-docpin-sch="${p.id}"${focusConn ? ` data-focus="${escapeHtml(focusConn)}"` : ""}>📐 ${focusConn ? "Pokaż " + escapeHtml(focusConn) + " na schemacie" : "Schemat"}</button>`
+    : `<button class="btn-mini" data-pcbf-pick="sch" data-pcb="${p.id}">📐 Dodaj schemat</button>`;
+  if(p.model3d) h += `<button class="btn-mini" data-pcbf-open="3d" data-pcb="${p.id}">🧊 3D</button>`;
+  return h;
+}
+
+function wireDocPinActions(root){
+  root.querySelectorAll("[data-docpin-sch]").forEach(b => b.addEventListener("click", () => openPcbSchematic(b.dataset.docpinSch, b.dataset.focus || null)));
+  root.querySelectorAll("[data-docpin-select]").forEach(sel => sel.addEventListener("change", async () => {
+    const d = docs.find(x => x.id === openDocId);
+    if(!d) return;
+    d.pins = d.pins || {};
+    if(sel.value) d.pins[sel.dataset.docpinSelect] = sel.value; else delete d.pins[sel.dataset.docpinSelect];
+    await saveAll();
+    renderDocBoards();
+  }));
+  wirePcbFileButtons(root);
+}
+
+function renderDocPick(){
+  const el = $("#doc-pick");
+  if(!el) return;
+  const d = docs.find(x => x.id === openDocId);
+  if(!d || !docPick){ el.style.display = "none"; return; }
+  const b = (d.boards || []).find(x => x.id === docPick.board);
+  if(!b){ el.style.display = "none"; return; }
+  const p = pcbs.find(x => x.id === (d.pins || {})[b.id]);
+  const conn = docPick.conn ? docPick.conn.split(".").slice(1).join(".") : null;
+  el.style.display = "flex";
+  el.innerHTML = `<span class="item-name">${escapeHtml(docBoardLabel(b))}${conn ? ` <span class="mono-sm">· ${escapeHtml(conn)}</span>` : ""}</span>
+    <span class="sp"></span>
+    ${p ? `<span class="hint">→ ${escapeHtml(p.name)}</span>${pinnedActions(p, conn)}`
+        : `<span class="hint">przypnij do płytki:</span><select class="pin-select" data-docpin-select="${escapeHtml(b.id)}">${pcbSelectHtml("")}</select>`}`;
+  wireDocPinActions(el);
+}
+
+function renderDocBoards(){
+  const el = $("#doc-boards");
+  if(!el) return;
+  const d = docs.find(x => x.id === openDocId);
+  if(!d || !(d.boards || []).length){ el.innerHTML = ""; el.style.display = "none"; renderDocPick(); return; }
+  el.style.display = "block";
+  const pins = d.pins || {};
+  let html = `<div class="doc-boards-head">Płytki w tym dokumencie <span class="hint">— przypnij je do płytek z zakładki Projekty, żeby otwierać ich schematy. Kliknięcie płytki albo złącza na okablowaniu pokazuje ją na pasku nad dokumentem.</span></div>
+    <table><thead><tr><th class="nosort">Na okablowaniu</th><th class="nosort">Przypięta płytka</th><th class="nosort">Akcje</th></tr></thead><tbody>`;
+  d.boards.forEach(b => {
+    const p = pcbs.find(x => x.id === pins[b.id]);
+    html += `<tr ${docPick && docPick.board === b.id ? 'style="background:rgba(201,122,70,0.08)"' : ""}>
+      <td><div class="item-name">${escapeHtml(b.name)}</div><div class="item-loc">${escapeHtml(b.id)}${b.sub ? " · " + escapeHtml(b.sub) : ""}</div></td>
+      <td><select class="pin-select" data-docpin-select="${escapeHtml(b.id)}">${pcbSelectHtml(p ? p.id : "")}</select></td>
+      <td><div class="row-actions" style="flex-wrap:wrap;">${pinnedActions(p, null)}</div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+  wireDocPinActions(el);
+  renderDocPick();
+}
+
+function wirePcbFiles(){
+  $("#pcb-sch-input").addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    if(f && pcbFileTarget) await attachPcbFile(pcbFileTarget.pcbId, "sch", f);
+    e.target.value = "";
+  });
+  $("#pcb-3d-input").addEventListener("change", async (e) => {
+    const f = e.target.files[0];
+    if(f && pcbFileTarget) await attachPcbFile(pcbFileTarget.pcbId, "3d", f);
+    e.target.value = "";
+  });
+  window.addEventListener("message", async (e) => {
+    const frame = $("#doc-frame");
+    if(!frame || e.source !== frame.contentWindow) return;
+    const m = e.data;
+    if(!m || m.__wv !== 1) return;
+    const d = docs.find(x => x.id === openDocId);
+    if(!d) return;
+    if(m.type === "boards" && Array.isArray(m.boards)){
+      const clean = m.boards.slice(0, 200).map(b => ({ id: String(b.id).slice(0, 60), name: String(b.name || b.id).slice(0, 100), sub: String(b.sub || "").slice(0, 100) }));
+      if(JSON.stringify(clean) !== JSON.stringify(d.boards || [])){ d.boards = clean; await saveAll(); }
+      renderDocBoards();
+    }else if(m.type === "pick"){
+      docPick = { board: String(m.board || ""), conn: m.conn ? String(m.conn) : null };
+      renderDocBoards();
+    }
+  });
+}
+
 /* ---------- init ---------- */
 async function init(){
   fillCategorySelect($("#f-cat"));
@@ -2879,6 +3860,9 @@ async function init(){
   renderPrints();
   wireDocsModule();
   renderDocs();
+  wireSchematicViewer();
+  wirePcbFiles();
+  renderBoardSchematics();
 
   $("#btn-todo-add").addEventListener("click", handleTodoSave);
   ["t-task","t-comment"].forEach(id => $("#"+id).addEventListener("keydown", (e) => { if(e.key === "Enter") handleTodoSave(); }));

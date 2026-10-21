@@ -295,6 +295,9 @@
   .sch-pins{ display:flex; flex-wrap:wrap; gap:6px 14px; width:100%; margin-top:4px; }
   .sch-pinrow{ font-family: var(--font-mono); font-size:12px; color: var(--muted); }
 
+  .parts-bar{ display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--line); }
+  .link-select{ width:100%; min-width:200px; font-size:12.5px; }
+  .link-select.has-match{ border-color: var(--copper); }
   .mono-sm{ font-family: var(--font-mono); font-size:12px; color: var(--cream); }
   #doc-pick{ display:none; align-items:center; gap:8px; flex-wrap:wrap; padding:9px 16px; border-bottom:1px solid var(--line); background: rgba(201,122,70,0.08); }
   #doc-pick .sp{ flex:1; }
@@ -663,7 +666,16 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;',
 function tmeUrl(name){ return "https://www.tme.eu/pl/katalog/?search=" + encodeURIComponent(name); }
 
 /* ---------- CSV import (inventory + shopping list) ---------- */
-function parseCSV(text){
+function parseCSV(text, delim){
+  text = String(text).replace(/^\uFEFF/, "");
+  if(!delim){
+    // detect the delimiter from the header line (outside quotes) — values like "C1, C2" must not split a ;-separated file
+    const first = text.split(/\r?\n/, 1)[0] || "";
+    const cnt = { ";": 0, "\t": 0, ",": 0 };
+    let q = false;
+    for(const ch of first){ if(ch === '"') q = !q; else if(!q && ch in cnt) cnt[ch]++; }
+    delim = cnt[";"] >= cnt["\t"] && cnt[";"] >= cnt[","] && cnt[";"] > 0 ? ";" : cnt["\t"] >= cnt[","] && cnt["\t"] > 0 ? "\t" : ",";
+  }
   const rows = [];
   let i = 0, field = "", row = [], inQuotes = false;
   const pushField = () => { row.push(field); field = ""; };
@@ -672,22 +684,323 @@ function parseCSV(text){
     const c = text[i];
     if(inQuotes){
       if(c === '"'){
-        if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+        if(text[i + 1] === '"'){ field += '"'; i += 2; continue; }
         inQuotes = false; i++; continue;
       }
       field += c; i++; continue;
     }
     if(c === '"'){ inQuotes = true; i++; continue; }
-    if(c === ','){ pushField(); i++; continue; }
-    if(c === ';'){ pushField(); i++; continue; } // tolerate semicolon-delimited exports too
-    if(c === '\t'){ pushField(); i++; continue; } // tolerate tab-delimited BOM exports (KiCad, Eagle, Altium...)
-    if(c === '\r'){ i++; continue; }
-    if(c === '\n'){ pushField(); pushRow(); i++; continue; }
-    field += c; i++; continue;
+    if(c === delim){ pushField(); i++; continue; }
+    if(c === "\r"){ i++; continue; }
+    if(c === "\n"){ pushField(); pushRow(); i++; continue; }
+    field += c; i++;
   }
   if(field.length || row.length){ pushField(); pushRow(); }
   return rows.filter(r => !(r.length === 1 && r[0].trim() === ""));
 }
+
+/* ---------- BOM ↔ warehouse matching ---------- */
+const PKG_METRIC = { "0603": "0201", "1005": "0402", "1608": "0603", "2012": "0805", "3216": "1206", "3225": "1210", "4532": "1812", "5025": "2010", "6332": "2512", "2520": "1008" };
+function engParse(s){
+  if(s === null || s === undefined) return null;
+  let t = String(s).trim().replace(/\s+/g, "").replace(/,/g, ".").replace(/[µμ]/g, "u").replace(/(Ω|ohms?)$/i, "");
+  if(!t) return null;
+  const mult = c => ({ p: 1e-12, n: 1e-9, u: 1e-6, m: 1e-3, k: 1e3, K: 1e3, M: 1e6, G: 1e9, R: 1, r: 1, "": 1 })[c];
+  let m = t.match(/^(\d+)([pnumkKMGRr])(\d+)([FfHh])?$/);            // 4k7, 4R7, 2n2F
+  if(m) return parseFloat(m[1] + "." + m[3]) * mult(m[2]);
+  m = t.match(/^(\d+(?:\.\d+)?)([pnumkKMGRr]?)([FfHh])?$/);          // 100nF, 10k, 220, 1M
+  if(m) return parseFloat(m[1]) * mult(m[2]);
+  return null;
+}
+function engEq(a, b){ return a !== null && b !== null && Math.abs(a - b) <= Math.max(Math.abs(a), Math.abs(b)) * 1e-6; }
+function pkgSize(s){
+  if(!s) return null;
+  const t = String(s).toUpperCase();
+  let m = t.match(/(?:RES|CAP|LED|FUS|IND|DIO)[A-Z]*?(\d{4})X/);    // IPC names: RESC3216X70, CAPC3216X135
+  if(m && PKG_METRIC[m[1]]) return PKG_METRIC[m[1]];
+  m = t.match(/(?:^|[^0-9])(0201|0402|0603|0805|1008|1206|1210|1812|2010|2512)(?![0-9])/);
+  return m ? m[1] : null;
+}
+function pkgFamily(s){
+  if(!s) return null;
+  const t = String(s).toUpperCase();
+  if(/\bTHT\b|DIP|DIL|TO-?92|TO-?220|AXIAL|RADIAL|HC49|TERMBLK|PINHD|\bTH\b/.test(t)) return "tht";
+  if(/SMD|SMT|SOIC|\bSO-?\d|SOT|QFP|QFN|TSSOP|SSOP|MSOP|SOD|DFN|BGA|PLCC/.test(t) || pkgSize(t)) return "smd";
+  return null;
+}
+function pkgPitch(s){
+  if(!s) return null;
+  const m = String(s).match(/(\d+[.,]\d+)\s*mm|(?:^|[^0-9.,])(\d[.,]\d{2})(?![0-9])/);
+  if(m) return parseFloat((m[1] || m[2]).replace(",", "."));
+  const m2 = String(s).match(/(?:^|[^0-9])(254|350|381|500|508)(?:[^0-9]|$)/);
+  return m2 ? parseInt(m2[1], 10) / 100 : null;
+}
+function pinCount(s){
+  if(!s) return null;
+  const m = String(s).match(/(\d+)\s*(?:pin|position|pos|-?pole|p\b)/i) || String(s).match(/-(\d+)N\b/);
+  return m ? parseInt(m[1], 10) : null;
+}
+function ampsOf(s){
+  if(!s) return null;
+  const t = String(s).replace(",", ".");
+  let m = t.match(/(\d+(?:\.\d+)?)\s*(m?)A\b/i);
+  if(m) return parseFloat(m[1]) * (m[2] ? 1e-3 : 1);
+  m = t.match(/\d{4}L(\d{3})/i);                                       // Littelfuse 1812L010 → 0.10 A
+  return m ? parseInt(m[1], 10) / 100 : null;
+}
+function normPN(s){ return String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+const KIND_WORDS = [
+  ["res", /resistor|rezystor/i], ["cap", /capacitor|kondensator/i], ["ind", /inductor|d[łl]awik|cewk/i],
+  ["led", /\bled\b/i], ["diode", /diode|dioda/i], ["crystal", /crystal|xtal|rezonator|kwarc/i],
+  ["fuse", /fuse|ptc|bezpiecznik|polyfuse/i], ["conn", /terminal block|\bark\b|header|goldpin|listw|z[łl][aą]cz|connector|socket|podstawk|usb/i],
+  ["trans", /transistor|tranzystor|mosfet/i], ["switch", /switch|prze[łl][aą]cznik|przycisk|button/i]
+];
+const COLORS = [["red", /\bred\b|czerwon/i], ["green", /green|zielon/i], ["blue", /blue|niebiesk/i], ["yellow", /yellow|[żz][oó][łl]t/i], ["white", /white|bia[łl]/i], ["orange", /orange|pomara[nń]cz/i]];
+function bomKind(part){
+  const ref = (part.refs || "").split(/[,;\s]+/).filter(Boolean)[0] || "";
+  const pre = (ref.match(/^[A-Za-z]+/) || [""])[0].toUpperCase();
+  const txt = [part.desc, part.name, part.pkg].join(" ");
+  if(/led/i.test(txt) && (pre === "D" || pre === "LED")) return "led";
+  if(/crystal|xtal|hc49/i.test(txt) || pre === "XTAL" || pre === "Y") return "crystal";
+  const byPre = { R: "res", C: "cap", L: "ind", D: "diode", F: "fuse", U: "ic", IC: "ic", J: "conn", JP: "conn", CN: "conn", P: "conn", X: "conn", Q: "trans", SW: "switch", S: "switch" }[pre];
+  if(byPre) return byPre;
+  for(const [k, re] of KIND_WORDS) if(re.test(txt)) return k;
+  return null;
+}
+function itemKind(it){
+  const name = (it.name || "") + " " + (it.value || "");
+  for(const [k, re] of [["conn", /\bark\b|goldpin|listw|z[łl][aą]cz|podstawk|usb/i], ["fuse", /bezpiecznik/i], ["crystal", /rezonator|kwarc|crystal/i], ["led", /\bled\b/i]]) if(re.test(name)) return k;
+  const c = { "Rezystory": "res", "Kondensatory": "cap", "Diody": "diode", "Tranzystory": "trans", "Układy scalone (IC)": "ic", "Mikrokontrolery": "ic", "Złącza": "conn", "Przełączniki i przyciski": "switch" }[it.category];
+  if(c) return c;
+  for(const [k, re] of KIND_WORDS) if(re.test(name)) return k;
+  return null;
+}
+function colorOf(s){ for(const [c, re] of COLORS) if(re.test(s || "")) return c; return null; }
+
+const CONN_TYPES = [["termblock", /terminal block|termblk|\bark\b|z[łl][aą]cze [śs]rubowe/i], ["header", /pin ?header|pinhd|goldpin|listw/i],
+  ["usb", /\busb/i], ["din", /\bdin-?5|\bdin\b/i], ["socket", /socket|podstawk/i], ["jack", /jack|minijack|\bdc ?jack/i], ["molex", /molex|kk ?254|22-23-20/i]];
+function connType(s){ for(const [t, re] of CONN_TYPES) if(re.test(s || "")) return t; return null; }
+function pnTokens(...vals){
+  const out = new Set();
+  vals.forEach(v => {
+    const whole = normPN(v);
+    if(whole.length >= 4 && /\d/.test(whole)) out.add(whole);
+    String(v || "").split(/[\s_\-\/,;()]+/).forEach(t => { const n = normPN(t); if(n.length >= 4 && /\d/.test(n) && /[A-Z]/.test(n)) out.add(n); });
+  });
+  return [...out];
+}
+function matchScore(bp, it){
+  const bk = bomKind(bp), ik = itemKind(it);
+  if(bk && ik && bk !== ik) return 0;
+  let s = 0;
+  const itemText = [it.name, it.value, it.loc].join(" ");
+  if(bk === "res" || bk === "cap" || bk === "ind"){
+    const vb = engParse(bp.name), vi = engParse(it.value) ?? engParse(it.name);
+    if(!engEq(vb, vi)) return 0;
+    s += 60;
+  }else if(bk === "fuse"){
+    const ab = ampsOf(bp.name) ?? ampsOf(bp.mpn), ai = ampsOf(it.value) ?? ampsOf(it.name);
+    if(ab !== null && ai !== null){ if(Math.abs(ab - ai) > 1e-6) return 0; s += 40; }
+    if(ik === "fuse") s += 25;
+  }else{
+    // part numbers: whole strings and tokens (74HC595N ↔ 74hc595, ATMEGA2560-16AUR ↔ atmega2560, 1N4148 inside a longer name)
+    const kb = pnTokens(bp.name, bp.mpn), ki = pnTokens(it.name, it.value, it.loc);
+    let pn = 0;
+    kb.forEach(a => ki.forEach(b => {
+      if(a === b) pn = Math.max(pn, 70);
+      else if((a.startsWith(b) || b.startsWith(a)) && Math.min(a.length, b.length) >= 5) pn = Math.max(pn, 55);
+    }));
+    if((bk === "ic" || bk === "trans" || bk === "diode" || (!bk && kb.length)) && pn === 0) return 0;  // different chip/diode — never guess
+    s += pn;
+    if(bk && ik && bk === ik) s += 25;
+    if(bk === "conn"){
+      const tb = connType([bp.desc, bp.name, bp.pkg].join(" ")), ti = connType(itemText);
+      if(tb && ti){ if(tb !== ti) return 0; s += 15; }
+      const pb = pkgPitch(bp.pkg) ?? pkgPitch(bp.desc), pi = pkgPitch(it.name) ?? pkgPitch(it.pkg);
+      if(pb && pi){ if(Math.abs(pb - pi) > 0.02) return 0; s += 30; }
+      const nb = pinCount(bp.desc) ?? pinCount(bp.pkg), ni = pinCount(it.name);
+      if(nb && ni && nb !== ni) s -= 30;
+    }else{
+      const kwB = KIND_WORDS.find(([k, re]) => re.test(bp.desc || "") && k === ik);
+      if(kwB) s += 15;
+    }
+    const cb = colorOf(bp.desc + " " + bp.name), ci = colorOf(itemText);
+    if(cb && ci){ if(cb !== ci) return 0; s += 15; }
+    if(s === 0) return 0;
+  }
+  const sb = pkgSize(bp.pkg), si = pkgSize(it.pkg);
+  if(sb && si) s += sb === si ? 25 : -45;
+  const fb = pkgFamily(bp.pkg), fi = pkgFamily(it.pkg);
+  if(fb && fi) s += fb === fi ? 5 : -40;
+  return Math.max(0, s);
+}
+function rankMatches(bp){
+  return items.map(it => ({ it, score: matchScore(bp, it) })).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+}
+function autoMatch(bp){
+  const r = rankMatches(bp);
+  if(!r.length || r[0].score < 60) return null;
+  if(r[1] && r[1].score > r[0].score - 15) return null;   // ambiguous — leave it for a one-click choice
+  return r[0].it;
+}
+
+function findColSmart(header, variants){
+  // variant order decides priority ("value" beats "description"), exact match before substring
+  for(const v of variants){ const i = header.indexOf(v); if(i >= 0) return i; }
+  for(const v of variants){ const i = header.findIndex(h => h.includes(v)); if(i >= 0) return i; }
+  return -1;
+}
+
+async function handleBomImportFile(pcbId, file){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  const rows = parseCSV(await file.text());
+  if(rows.length < 2){ toast("Plik BOM jest pusty albo nieprawidłowy"); return; }
+  const header = rows[0].map(h => stripPl(h));
+  const idx = {
+    value: findColSmart(header, ["value", "wartosc", "comment"]),
+    desc: findColSmart(header, ["description", "detailed description", "opis", "device"]),
+    footprint: findColSmart(header, ["footprint", "package", "obudowa", "pkg", "footprint name"]),
+    qty: findColSmart(header, ["quantity", "qty", "ilosc", "count"]),
+    ref: findColSmart(header, ["reference designators", "reference", "designator", "references", "refs", "ref", "part", "parts"]),
+    mpn: findColSmart(header, ["manufacturer part number", "mpn", "part-number", "part number", "mfr part"])
+  };
+  if(idx.value === -1 && idx.ref === -1){ toast("Nie rozpoznano kolumn w pliku BOM (brak Value/Reference)"); return; }
+  const cell = (row, k) => idx[k] >= 0 ? (row[idx[k]] || "").trim() : "";
+  // several exports have more than one description-like column — take the first non-empty one per row
+  const descCols = ["detailed description", "description", "opis", "device"].map(v => header.indexOf(v)).filter(i => i >= 0);
+  const descOf = row => { for(const i of descCols){ const v = (row[i] || "").trim(); if(v) return v; } return cell(row, "desc"); };
+
+  const groups = new Map();
+  let rowCount = 0;
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(c => (c || "").trim() === "")) continue;
+    const value = cell(row, "value"), desc = descOf(row), pkg = cell(row, "footprint"), mpn = cell(row, "mpn");
+    const refsList = cell(row, "ref").split(/[,;\s]+/).filter(Boolean);
+    if(!refsList.length && !value) continue;                          // e.g. the "Board" row
+    let qty = parseInt(cell(row, "qty"), 10);
+    if(isNaN(qty) || qty <= 0) qty = refsList.length || 1;
+    const name = value || desc || refsList[0];
+    rowCount++;
+    const key = stripPl(name) + "|" + stripPl(pkg);
+    if(!groups.has(key)) groups.set(key, { key, name, desc, pkg, mpn, refs: [], qty: 0 });
+    const g = groups.get(key);
+    g.qty += qty;
+    refsList.forEach(x => { if(!g.refs.includes(x)) g.refs.push(x); });
+    if(!g.desc && desc) g.desc = desc;
+    if(!g.mpn && mpn) g.mpn = mpn;
+  }
+  if(!groups.size){ toast("Nie znaleziono żadnych elementów w pliku BOM"); return; }
+
+  if(p.parts.length && confirm(`Płytka „${p.name}” ma już ${p.parts.length} pozycji.\n\nOK — zastąp całą listę elementami z tego BOM-u (zwolni to rezerwacje)\nAnuluj — dopisz i zaktualizuj istniejące pozycje`)){
+    p.parts = [];
+  }
+
+  let added = 0, updated = 0, linked = 0;
+  groups.forEach(g => {
+    const bp = { name: g.name, desc: g.desc, pkg: g.pkg, mpn: g.mpn, refs: g.refs.join(", ") };
+    const existing = p.parts.find(pt => pt.bomKey === g.key) || p.parts.find(pt => !pt.bomKey && stripPl(pt.name) === stripPl(g.name));
+    const target = existing || { id: uid('pp_'), itemId: null, reserved: false };
+    Object.assign(target, { name: g.name, desc: g.desc, pkg: g.pkg, mpn: g.mpn, refs: bp.refs, qtyNeeded: g.qty, bomKey: g.key });
+    if(!target.itemId){
+      const m = autoMatch(bp);
+      if(m){ target.itemId = m.id; linked++; }
+    }
+    if(existing) updated++; else { p.parts.push(target); added++; }
+  });
+  await saveAll();
+  renderPcbs();
+  render();
+  const total = p.parts.length, fromStock = p.parts.filter(x => x.itemId).length;
+  toast(`BOM „${p.name}”: ${rowCount} wierszy → ${groups.size} pozycji · ${linked} dopasowano z magazynu automatycznie (${fromStock}/${total} powiązanych)`);
+}
+
+/* ---------- parts table with one-click linking ---------- */
+function partMatchOptions(part){
+  const ranked = rankMatches(part);
+  const top = ranked.filter(r => r.score >= 25).slice(0, 6);
+  const topIds = new Set(top.map(r => r.it.id));
+  const rest = items.filter(it => !topIds.has(it.id)).sort((a, b) => a.name.localeCompare(b.name));
+  let h = `<option value="">${top.length ? `— przypisz z magazynu (${top.length} pasuje) —` : "— przypisz z magazynu —"}</option>`;
+  if(top.length) h += `<optgroup label="Pasujące">` + top.map(r => `<option value="${r.it.id}">✓ ${escapeHtml(itemFullLabel(r.it))}</option>`).join("") + `</optgroup>`;
+  if(rest.length) h += `<optgroup label="Cały magazyn">` + rest.map(it => `<option value="${it.id}">${escapeHtml(itemFullLabel(it))}</option>`).join("") + `</optgroup>`;
+  return { html: h, count: top.length };
+}
+
+async function linkPcbPart(pcbId, partId, itemId){
+  const p = pcbs.find(x => x.id === pcbId);
+  const part = p && p.parts.find(x => x.id === partId);
+  if(!part) return;
+  part.itemId = itemId || null;
+  part.reserved = false;
+  await saveAll();
+  renderPcbs();
+  render();
+}
+
+async function autoLinkPcb(pcbId){
+  const p = pcbs.find(x => x.id === pcbId);
+  if(!p) return;
+  let n = 0;
+  p.parts.forEach(part => {
+    if(part.itemId) return;
+    const m = autoMatch(part);
+    if(m){ part.itemId = m.id; n++; }
+  });
+  await saveAll();
+  renderPcbs();
+  render();
+  toast(n ? `Dopasowano automatycznie ${n} pozycji` : "Nie znaleziono pewnych dopasowań — wybierz z listy przy elemencie");
+}
+
+function renderPcbPartsTable(p){
+  if(!p.parts || p.parts.length === 0){
+    return `<div class="empty" style="padding:24px;">Brak elementów na liście tej płytki.</div>`;
+  }
+  const unlinked = p.parts.filter(x => !x.itemId).length;
+  let html = `<div class="parts-bar"><span class="hint">${p.parts.length - unlinked}/${p.parts.length} pozycji powiązanych z magazynem</span>${unlinked ? `<button class="btn-mini" data-pcb-autolink="${p.id}">✨ Dopasuj automatycznie</button>` : ""}</div>
+  <table><thead><tr>
+    <th class="nosort">Element</th><th class="nosort">Z magazynu</th><th class="nosort">Ilość</th><th class="nosort">Status</th><th class="nosort">Akcje</th>
+  </tr></thead><tbody>`;
+  p.parts.forEach(part => {
+    const it = part.itemId ? items.find(i => i.id === part.itemId) : null;
+    let statusHtml;
+    if(!part.itemId){
+      statusHtml = `<span class="badge" style="border-color:#8a948855; color:#8a9488; background:#8a948814;">spoza magazynu</span>`;
+    }else if(part.reserved){
+      statusHtml = `<span class="badge" style="border-color:#6fa97e55; color:#6fa97e; background:#6fa97e14;">zablokowane</span>`;
+    }else{
+      const avail = it ? (it.qty - reservedQtyForItem(part.itemId)) : 0;
+      const ok = avail >= part.qtyNeeded;
+      const col = ok ? "#c97a46" : "#e07456";
+      statusHtml = `<span class="badge" style="border-color:${col}55; color:${col}; background:${col}14;">${ok ? "niezablokowane" : "za mało"}${it ? ` (dost.: ${avail})` : ""}</span>`;
+    }
+    const meta = [part.desc && part.desc !== part.name ? part.desc : "", part.pkg].filter(Boolean).join(" · ");
+    let stockCell;
+    if(it){
+      stockCell = `<div class="mono-sm">${escapeHtml(it.name)}${it.value ? " " + escapeHtml(it.value) : ""}</div><div class="item-loc">${escapeHtml([it.pkg, it.loc].filter(Boolean).join(" · "))}</div>`;
+    }else{
+      const opts = partMatchOptions(part);
+      stockCell = `<select class="pin-select link-select${opts.count ? " has-match" : ""}" data-pcb-id="${p.id}" data-pcb-linksel="${part.id}">${opts.html}</select>`;
+    }
+    html += `<tr>
+      <td><div class="item-name">${escapeHtml(part.name)}</div>${meta ? `<div class="item-loc">${escapeHtml(meta)}</div>` : ""}${part.refs ? `<div class="item-loc">${escapeHtml(part.refs)}</div>` : ""}</td>
+      <td style="min-width:220px;">${stockCell}</td>
+      <td class="qty">${part.qtyNeeded}</td>
+      <td>${statusHtml}</td>
+      <td><div class="row-actions">
+        ${part.itemId ? `<button class="icon-btn" title="${part.reserved ? 'Odblokuj' : 'Zablokuj'}" data-pcb-id="${p.id}" data-pcb-reserve="${part.id}">${part.reserved ? "🔓" : "🔒"}</button><button class="icon-btn" title="Odepnij od magazynu" data-pcb-id="${p.id}" data-pcb-unlink="${part.id}">⛓️‍💥</button>` : ""}
+        <button class="icon-btn edit" title="Edytuj" data-pcb-id="${p.id}" data-pcb-partedit="${part.id}">✎</button>
+        <button class="icon-btn del" title="Usuń" data-pcb-id="${p.id}" data-pcb-partdel="${part.id}">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  return html;
+}
+
+
 function stripPl(s){
   const map = {'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'};
   return String(s||"").toLowerCase().split("").map(ch => map[ch] || ch).join("").trim();
@@ -803,92 +1116,6 @@ async function handleShoppingImportFile(file){
 }
 
 /* ---------- BOM import (per PCB, from KiCad/Eagle/Altium-style exports) ---------- */
-function findColSmart(header, variants){
-  // exact match first (whole cell equals a variant)
-  for(let i = 0; i < header.length; i++){ if(variants.includes(header[i])) return i; }
-  // fallback: variant appears as a substring (handles headers like "Footprint Name")
-  for(let i = 0; i < header.length; i++){ if(variants.some(v => header[i].includes(v))) return i; }
-  return -1;
-}
-
-async function handleBomImportFile(pcbId, file){
-  const p = pcbs.find(x => x.id === pcbId);
-  if(!p) return;
-  const text = await file.text();
-  const rows = parseCSV(text);
-  if(rows.length < 2){ toast("Plik BOM jest pusty albo nieprawidłowy"); return; }
-  const header = rows[0].map(h => stripPl(h));
-  const idx = {
-    value: findColSmart(header, ["value","wartosc","comment","opis","description","nazwa"]),
-    footprint: findColSmart(header, ["footprint","obudowa","package","pkg"]),
-    qty: findColSmart(header, ["qty","quantity","ilosc","count"]),
-    ref: findColSmart(header, ["reference","ref","references","refs","designator","part"])
-  };
-  if(idx.value === -1 && idx.ref === -1){
-    toast("Nie rozpoznano kolumn w pliku BOM (brak Value/Reference)");
-    return;
-  }
-
-  // Pass 1: read every row into a raw entry.
-  const rawEntries = [];
-  for(let r = 1; r < rows.length; r++){
-    const row = rows[r];
-    if(!row || row.every(c => (c||"").trim() === "")) continue;
-    const value = idx.value >= 0 ? (row[idx.value] || "").trim() : "";
-    const footprint = idx.footprint >= 0 ? (row[idx.footprint] || "").trim() : "";
-    const refsRaw = idx.ref >= 0 ? (row[idx.ref] || "").trim() : "";
-    const refsList = refsRaw ? refsRaw.split(/[,;\s]+/).filter(Boolean) : [];
-    let qty = idx.qty >= 0 ? parseInt((row[idx.qty] || "").replace(",", "."), 10) : NaN;
-    if(isNaN(qty) || qty <= 0) qty = refsList.length > 0 ? refsList.length : 1;
-    const name = value || refsList[0] || "";
-    if(!name) continue;
-    rawEntries.push({ name, footprint, refsList, qty });
-  }
-  if(rawEntries.length === 0){ toast("Nie znaleziono żadnych elementów w pliku BOM"); return; }
-
-  // Pass 2: group rows sharing the same value/name — this handles both
-  // already-grouped BOM exports (one row per value with a Qty column) and
-  // ungrouped exports (one row per physical instance, e.g. Fusion/EasyEDA
-  // style with a single "Part" reference column and no Qty column).
-  const groups = new Map();
-  rawEntries.forEach(e => {
-    const key = stripPl(e.name);
-    if(!groups.has(key)) groups.set(key, { name: e.name, footprint: e.footprint, refs: new Set(), qty: 0 });
-    const g = groups.get(key);
-    g.qty += e.qty;
-    e.refsList.forEach(r => g.refs.add(r));
-    if(!g.footprint && e.footprint) g.footprint = e.footprint;
-  });
-
-  let added = 0, updated = 0;
-  groups.forEach(g => {
-    const refsJoined = g.refs.size ? Array.from(g.refs).join(", ") : "";
-    const matchKey = stripPl(g.name);
-    // match by the inventory item's "wartość" field first (e.g. BOM value "100nF"
-    // vs. a generically-named inventory item "Kondensator" with value "100nF"),
-    // then fall back to matching the item's name directly, as a last resort.
-    let matchedItem = items.find(it => it.value && stripPl(it.value) === matchKey && g.footprint && it.pkg && stripPl(it.pkg) === stripPl(g.footprint));
-    if(!matchedItem) matchedItem = items.find(it => it.value && stripPl(it.value) === matchKey);
-    if(!matchedItem) matchedItem = items.find(it => stripPl(it.name) === matchKey && g.footprint && it.pkg && stripPl(it.pkg) === stripPl(g.footprint));
-    if(!matchedItem) matchedItem = items.find(it => stripPl(it.name) === matchKey);
-
-    const existingPart = p.parts.find(pt => stripPl(pt.name) === matchKey);
-    if(existingPart){
-      existingPart.qtyNeeded = g.qty;
-      if(refsJoined) existingPart.refs = refsJoined;
-      if(!existingPart.itemId && matchedItem) existingPart.itemId = matchedItem.id;
-      updated++;
-    }else{
-      p.parts.push({ id: uid('pp_'), itemId: matchedItem ? matchedItem.id : null, name: g.name, qtyNeeded: g.qty, reserved: false, refs: refsJoined });
-      added++;
-    }
-  });
-
-  await saveAll();
-  renderPcbs();
-  render();
-  toast(`BOM „${p.name}”: dodano ${added} nowych, zaktualizowano ${updated} istniejących (${rawEntries.length} wierszy → ${groups.size} unikalnych wartości)`);
-}
 function idbOpen(){
   return new Promise((resolve, reject) => {
     const req = indexedDB.open("workshop-inventory-db", 2);
@@ -2139,6 +2366,9 @@ function renderPcbs(){
   listEl.querySelectorAll("[data-pcb-reserve]").forEach(btn => btn.addEventListener("click", () => togglePartReserved(btn.dataset.pcbId, btn.dataset.pcbReserve)));
   listEl.querySelectorAll("[data-pcb-partedit]").forEach(btn => btn.addEventListener("click", () => startEditPcbPart(btn.dataset.pcbId, btn.dataset.pcbPartedit)));
   listEl.querySelectorAll("[data-pcb-link]").forEach(btn => btn.addEventListener("click", () => startEditPcbPart(btn.dataset.pcbId, btn.dataset.pcbLink, "existing")));
+  listEl.querySelectorAll("[data-pcb-linksel]").forEach(sel => sel.addEventListener("change", () => { if(sel.value) linkPcbPart(sel.dataset.pcbId, sel.dataset.pcbLinksel, sel.value); }));
+  listEl.querySelectorAll("[data-pcb-unlink]").forEach(btn => btn.addEventListener("click", () => linkPcbPart(btn.dataset.pcbId, btn.dataset.pcbUnlink, null)));
+  listEl.querySelectorAll("[data-pcb-autolink]").forEach(btn => btn.addEventListener("click", () => autoLinkPcb(btn.dataset.pcbAutolink)));
   listEl.querySelectorAll("[data-pcb-partdel]").forEach(btn => btn.addEventListener("click", () => deletePcbPart(btn.dataset.pcbId, btn.dataset.pcbPartdel)));
   listEl.querySelectorAll("[data-pcb-shortfall-add]").forEach(btn => btn.addEventListener("click", () => addShortfallToShopping(btn.dataset.pcbShortfallAdd, btn.dataset.partId)));
   listEl.querySelectorAll("[data-pcb-shortfall-all]").forEach(btn => btn.addEventListener("click", () => addAllShortfallsToShopping(btn.dataset.pcbShortfallAll)));
@@ -2153,40 +2383,6 @@ function renderPcbs(){
     if(file) await handleBomImportFile(pcbId, file);
     e.target.value = "";
   }));
-}
-
-function renderPcbPartsTable(p){
-  if(!p.parts || p.parts.length === 0){
-    return `<div class="empty" style="padding:24px;">Brak elementów na liście tej płytki.</div>`;
-  }
-  let html = `<table><thead><tr>
-    <th class="nosort">Element</th><th class="nosort">Źródło</th><th class="nosort">Ilość</th><th class="nosort">Status</th><th class="nosort">Akcje</th>
-  </tr></thead><tbody>`;
-  p.parts.forEach(part => {
-    let statusHtml;
-    if(!part.itemId){
-      statusHtml = `<span class="badge" style="border-color:#8a948855; color:#8a9488; background:#8a948814;">spoza magazynu</span>`;
-    }else if(part.reserved){
-      statusHtml = `<span class="badge" style="border-color:#6fa97e55; color:#6fa97e; background:#6fa97e14;">zablokowane</span>`;
-    }else{
-      const it = items.find(i => i.id === part.itemId);
-      const avail = it ? (it.qty - reservedQtyForItem(part.itemId)) : 0;
-      statusHtml = `<span class="badge" style="border-color:#c97a4655; color:#c97a46; background:#c97a4614;">niezablokowane${it ? ` (dost.: ${avail})` : ""}</span>`;
-    }
-    html += `<tr>
-      <td><div class="item-name">${escapeHtml(part.name)}</div>${part.refs ? `<div class="item-loc">${escapeHtml(part.refs)}</div>` : ""}</td>
-      <td>${part.itemId ? "magazyn" : "zewnętrzne"}</td>
-      <td class="qty">${part.qtyNeeded}</td>
-      <td>${statusHtml}</td>
-      <td><div class="row-actions">
-        ${part.itemId ? `<button class="icon-btn" title="${part.reserved ? 'Odblokuj' : 'Zablokuj'}" data-pcb-id="${p.id}" data-pcb-reserve="${part.id}">${part.reserved ? "🔓" : "🔒"}</button>` : `<button class="icon-btn" title="Powiąż z magazynem" data-pcb-id="${p.id}" data-pcb-link="${part.id}">🔗</button>`}
-        <button class="icon-btn edit" title="Edytuj" data-pcb-id="${p.id}" data-pcb-partedit="${part.id}">✎</button>
-        <button class="icon-btn del" title="Usuń" data-pcb-id="${p.id}" data-pcb-partdel="${part.id}">✕</button>
-      </div></td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  return html;
 }
 
 function switchTab(name){

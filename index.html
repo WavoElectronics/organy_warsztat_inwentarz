@@ -629,6 +629,15 @@ let storageMode = "local"; // "claude" | "gdrive" | "fsapi" | "local"
 let fsHandle = null;
 let fsReady = false;
 let pendingLocalChanges = false; // true when edits happened without a granted file connection
+let dataSavedAt = 0;              // time of the last local change, stored inside the payload
+let driveExpiryTimer = null;
+let driveSessionLost = false;
+function payloadObj(){ return { items, shopping, todos, pcbs, prints, docs, savedAt: dataSavedAt }; }
+function driveSyncedAt(){ return Number(localStorage.getItem("driveSyncedAt") || 0); }
+function markDriveSynced(){ try{ localStorage.setItem("driveSyncedAt", String(dataSavedAt)); }catch(e){} }
+function hasUnsyncedDriveChanges(){ return dataSavedAt > driveSyncedAt(); }
+function dataBody(d){ if(!d) return ""; const { savedAt, ...rest } = d; return JSON.stringify(rest); }
+function isEmptyData(d){ return !d || ["items","shopping","todos","pcbs","prints","docs"].every(k => !Array.isArray(d[k]) || d[k].length === 0); }
 
 let editingId = null;
 let activeCategory = null;
@@ -951,11 +960,24 @@ function connectGoogleDrive(){
         callback: () => {} // overwritten per-call below
       });
     }
+    let done = false;
+    const timer = setTimeout(() => { if(!done){ done = true; reject(new Error("timeout")); } }, 90000);
     driveTokenClient.callback = (resp) => {
+      if(done) return; done = true; clearTimeout(timer);
       if(resp.error){ reject(new Error(resp.error)); return; }
       driveAccessToken = resp.access_token;
       driveTokenExpiry = Date.now() + ((resp.expires_in || 3600) * 1000);
+      clearTimeout(driveExpiryTimer);
+      driveExpiryTimer = setTimeout(() => {
+        // session ran out: show it right away instead of failing silently on the next save
+        driveAccessToken = null;
+        renderStorageBar();
+      }, Math.max(5000, driveTokenExpiry - Date.now() - 30000));
       resolve(driveAccessToken);
+    };
+    driveTokenClient.error_callback = (err) => {
+      if(done) return; done = true; clearTimeout(timer);
+      reject(new Error((err && err.type) || "popup"));
     };
     driveTokenClient.requestAccessToken({ prompt: "" });
   });
@@ -965,6 +987,92 @@ async function ensureDriveToken(){
   if(driveAccessToken && Date.now() < driveTokenExpiry - 60000) return true;
   try{ await connectGoogleDrive(); return true; }
   catch(e){ return false; }
+}
+
+
+/* ---------- Drive folders: everything the page stores lives in "github strona" ---------- */
+const DRIVE_ROOT_FOLDER = "github strona";
+const DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
+const driveFolderCache = {};
+function driveSubfolderFor(name){
+  if(/^schemat_/.test(name)) return "Schematy";
+  if(/^(stl_|model3d_)/.test(name)) return "Modele 3D";
+  if(/^dokument_/.test(name)) return "Dokumenty";
+  return null;
+}
+async function driveFolder(name, parentId){
+  const key = (parentId || "root") + "/" + name;
+  if(driveFolderCache[key]) return driveFolderCache[key];
+  const headers = { Authorization: "Bearer " + driveAccessToken };
+  const lsKey = "driveFolder:" + key;
+  let id = localStorage.getItem(lsKey);
+  if(id){
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,trashed`, { headers });
+    if(r.ok){ const m = await r.json(); if(!m.trashed){ driveFolderCache[key] = id; return id; } }
+    id = null;
+  }
+  const q = `name='${name}' and mimeType='${DRIVE_FOLDER_MIME}' and trashed=false` + (parentId ? ` and '${parentId}' in parents` : "");
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id)`, { headers });
+  const data = res.ok ? await res.json() : {};
+  if(data.files && data.files.length) id = data.files[0].id;
+  else{
+    const body = { name, mimeType: DRIVE_FOLDER_MIME };
+    if(parentId) body.parents = [parentId];
+    const cr = await fetch("https://www.googleapis.com/drive/v3/files", {
+      method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    if(!cr.ok) throw new Error("folder create failed");
+    id = (await cr.json()).id;
+  }
+  try{ localStorage.setItem(lsKey, id); }catch(e){}
+  driveFolderCache[key] = id;
+  return id;
+}
+async function driveTargetFolder(name){
+  const root = await driveFolder(DRIVE_ROOT_FOLDER, null);
+  const sub = driveSubfolderFor(name);
+  return sub ? await driveFolder(sub, root) : root;
+}
+async function driveMeta(name, mime){ return { name, mimeType: mime, parents: [await driveTargetFolder(name)] }; }
+
+// move files created by older versions of the page (which landed in "My Drive") into the folders
+async function driveMoveIntoFolder(id, routingName){
+  const headers = { Authorization: "Bearer " + driveAccessToken };
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=parents,trashed`, { headers });
+  if(!r.ok) return false;
+  const meta = await r.json();
+  if(meta.trashed) return false;
+  const target = await driveTargetFolder(routingName);
+  const parents = meta.parents || [];
+  if(parents.includes(target)) return false;
+  const mv = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?addParents=${target}` + (parents.length ? `&removeParents=${parents.join(",")}` : "") + `&fields=id`, {
+    method: "PATCH", headers: { ...headers, "Content-Type": "application/json" }, body: "{}"
+  });
+  return mv.ok;
+}
+async function driveOrganizeFiles(){
+  if(!driveUsable()) return;
+  let done;
+  try{ done = new Set(JSON.parse(localStorage.getItem("driveOrganizedIds") || "[]")); }catch(e){ done = new Set(); }
+  const todo = [];
+  if(driveFileId) todo.push([driveFileId, DRIVE_FILE_NAME]);
+  prints.forEach(pr => { if(pr.stl && pr.stl.driveFileId) todo.push([pr.stl.driveFileId, "stl_"]); });
+  docs.forEach(d => { if(d.driveFileId) todo.push([d.driveFileId, "dokument_"]); });
+  pcbs.forEach(p => {
+    if(p.sch && p.sch.driveFileId) todo.push([p.sch.driveFileId, "schemat_"]);
+    if(p.model3d && p.model3d.driveFileId) todo.push([p.model3d.driveFileId, "model3d_"]);
+  });
+  let moved = 0;
+  for(const [id, routing] of todo){
+    if(done.has(id)) continue;
+    try{
+      if(!(await ensureDriveToken())) return;
+      if(await driveMoveIntoFolder(id, routing)) moved++;
+      done.add(id);
+    }catch(e){}
+  }
+  try{ localStorage.setItem("driveOrganizedIds", JSON.stringify([...done])); }catch(e){}
+  if(moved) toast(`Przeniesiono ${moved} plik(i) do folderu „${DRIVE_ROOT_FOLDER}” na Dysku`);
 }
 
 async function driveFindOrCreateFile(){
@@ -987,7 +1095,7 @@ async function driveFindOrCreateFile(){
     const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: DRIVE_FILE_NAME, mimeType: "application/json" })
+      body: JSON.stringify(await driveMeta(DRIVE_FILE_NAME, "application/json"))
     });
     const created = await createRes.json();
     driveFileId = created.id;
@@ -1023,24 +1131,65 @@ async function connectGoogleDriveFlow(){
     const ok = await ensureDriveToken();
     if(!ok){ toast("Nie udało się zalogować do Google"); return; }
     await driveFindOrCreateFile();
-    if(pendingLocalChanges){
-      await driveWriteRaw(JSON.stringify({ items, shopping, todos, pcbs, prints, docs }, null, 2));
-      pendingLocalChanges = false;
-      toast("Zsynchronizowano zmiany z Dyskiem Google");
+    const text = await driveReadRaw();
+    let remote = null;
+    try{ remote = text.trim() ? JSON.parse(text) : null; }catch(e){ remote = null; }
+    let local = null;
+    try{ const raw = localStorage.getItem(STORAGE_KEY); local = raw ? JSON.parse(raw) : null; }catch(e){ local = null; }
+    const synced = driveSyncedAt();
+    const localTime = local && Number(local.savedAt) || 0;
+    const remoteTime = remote && Number(remote.savedAt) || 0;
+    const differs = local && !isEmptyData(local) && dataBody(local) !== dataBody(remote);
+    let useLocal = false;
+    if(differs){
+      const localDirty = !localTime || localTime > synced;      // no timestamp = cache from an older version, treat as unsynced
+      const remoteChanged = !remoteTime || remoteTime > synced;
+      if(!localDirty) useLocal = false;
+      else if(isEmptyData(remote)) useLocal = true;
+      else if(!remoteChanged) useLocal = true;
+      else{
+        const fmt = t => t ? new Date(t).toLocaleString("pl-PL") : "nieznana data";
+        useLocal = confirm(
+          "Dane na tym urządzeniu różnią się od tych na Dysku Google.\n\n" +
+          "To urządzenie: zmiany z " + fmt(localTime) + "\n" +
+          "Dysk Google: wersja z " + fmt(remoteTime) + "\n\n" +
+          "OK — wyślij dane z tego urządzenia na Dysk\n" +
+          "Anuluj — wczytaj dane z Dysku (kopia danych z tego urządzenia zostanie zachowana w przeglądarce)");
+      }
+    }
+    if(useLocal){
+      applyLoadedData(local);
+      if(!dataSavedAt) dataSavedAt = Date.now();
+      await driveWriteRaw(JSON.stringify(payloadObj(), null, 2));
+      toast("Wysłano dane z tego urządzenia na Dysk Google");
     }else{
-      const text = await driveReadRaw();
-      applyLoadedData(text.trim() ? JSON.parse(text) : null);
+      if(differs){ try{ localStorage.setItem(STORAGE_KEY + "-kopia", JSON.stringify(local)); }catch(e){} }
+      applyLoadedData(remote);
       toast("Wczytano dane z Dysku Google");
     }
+    pendingLocalChanges = false;
+    driveSessionLost = false;
+    markDriveSynced();
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(payloadObj())); }catch(e){}
     storageMode = "gdrive";
     driveReady = true;
     localStorage.setItem("preferredBackend", "gdrive");
     render(); renderShopping(); renderTodos(); renderPcbs(); renderStorageBar(); refreshShoppingLinkOptions();
     renderDocs();
-    syncPendingStlUploads().then(syncPendingDocUploads).then(syncPendingPcbFiles);
+    driveOrganizeFiles().catch(() => {}).then(syncPendingStlUploads).then(syncPendingDocUploads).then(syncPendingPcbFiles);
   }catch(e){
     toast("Nie udało się połączyć z Google Drive");
   }
+}
+
+function driveNeedsLogin(){
+  const wasReady = driveReady;
+  driveSessionLost = true;
+  driveReady = false;
+  driveAccessToken = null;
+  pendingLocalChanges = true;
+  renderStorageBar();
+  if(wasReady) toast("Sesja Google wygasła — zmiany są na tym urządzeniu. Kliknij „Zaloguj przez Google”, żeby wysłać je na Dysk.");
 }
 
 async function driveDisconnect(){
@@ -1131,10 +1280,11 @@ function renderStorageBar(){
 
   if(storageMode === "gdrive"){
     if(driveReady && driveAccessToken){
-      bar.innerHTML = `<span class="dot ok"></span> Zapisano na Dysku Google: <span class="filename">${DRIVE_FILE_NAME}</span><span class="sp"></span><button class="btn-mini" id="btn-drive-disconnect">Rozłącz</button>`;
+      bar.innerHTML = `<span class="dot ok"></span> Zapisano na Dysku Google: <span class="filename">${DRIVE_ROOT_FOLDER} / ${DRIVE_FILE_NAME}</span><span class="sp"></span><button class="btn-mini" id="btn-drive-disconnect">Rozłącz</button>`;
       $("#btn-drive-disconnect").addEventListener("click", driveDisconnect);
     }else{
-      bar.innerHTML = `<span class="dot warn"></span> Dysk Google był podłączony &mdash; zaloguj się ponownie${pendingLocalChanges ? " (masz niezapisane zmiany)" : ""}.<span class="sp"></span><button class="btn-mini" id="btn-drive-reauth">Zaloguj przez Google</button>`;
+      const waiting = hasUnsyncedDriveChanges();
+      bar.innerHTML = `<span class="dot warn"></span> ${(driveReady || driveSessionLost) ? "Sesja Google wygasła" : "Nie jesteś zalogowany do Dysku Google"}${waiting ? " — <b>zmiany z tego urządzenia czekają na wysłanie</b>" : " — zaloguj się, żeby zsynchronizować dane"}.<span class="sp"></span><button class="btn-mini" id="btn-drive-reauth">Zaloguj przez Google</button>`;
       $("#btn-drive-reauth").addEventListener("click", driveReauthorize);
     }
     return;
@@ -1170,7 +1320,7 @@ function renderStorageBar(){
 
 /* ---------- low level read/write per backend ---------- */
 async function writeToFile(){
-  const payload = JSON.stringify({ items, shopping, todos, pcbs, prints, docs }, null, 2);
+  const payload = JSON.stringify(payloadObj(), null, 2);
   if(storageMode === "claude"){
     try{
       const res = await window.storage.set(STORAGE_KEY, payload, false);
@@ -1186,11 +1336,12 @@ async function writeToFile(){
     }catch(e){ toast("Błąd zapisu do pliku"); }
   }
   if(storageMode === "gdrive" && driveReady && driveFileId){
+    let ok = false;
     try{
-      const ok = await ensureDriveToken();
-      if(ok){ await driveWriteRaw(payload); }
-      else{ pendingLocalChanges = true; renderStorageBar(); }
-    }catch(e){ pendingLocalChanges = true; renderStorageBar(); toast("Błąd zapisu na Dysk Google"); }
+      if(await ensureDriveToken()){ await driveWriteRaw(payload); ok = true; }
+    }catch(e){}
+    if(ok) markDriveSynced();
+    else driveNeedsLogin();
   }
   // always mirror to localStorage as a local cache/safety net
   try{ localStorage.setItem(STORAGE_KEY, payload); }catch(e){}
@@ -1223,6 +1374,7 @@ async function readFromFile(){
 }
 
 function applyLoadedData(data){
+  dataSavedAt = (data && !Array.isArray(data) && Number(data.savedAt)) || 0;
   if(!data){ items = []; shopping = []; todos = []; pcbs = []; prints = []; docs = []; return; }
   if(Array.isArray(data)){ items = data; shopping = []; todos = []; pcbs = []; prints = []; docs = []; return; } // legacy format
   items = Array.isArray(data.items) ? data.items : [];
@@ -1252,16 +1404,17 @@ async function loadAll(){
 // backend exists but isn't authorized yet, marks changes as pending so they
 // get pushed (not overwritten) once access is granted.
 async function saveAll(){
+  dataSavedAt = Date.now();
   if(storageMode === "claude"){ await writeToFile(); return; }
   if(storageMode === "fsapi" && fsHandle && fsReady){ await writeToFile(); return; }
   if(storageMode === "gdrive" && driveReady && driveFileId){ await writeToFile(); return; }
   if((storageMode === "fsapi" && (!fsHandle || !fsReady)) || (storageMode === "gdrive" && (!driveReady || !driveFileId))){
     pendingLocalChanges = true;
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints, docs })); }catch(e){}
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(payloadObj())); }catch(e){}
     renderStorageBar();
     return;
   }
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, shopping, todos, pcbs, prints, docs })); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(payloadObj())); }catch(e){}
 }
 
 /* ---------- category dot selects ---------- */
@@ -2096,7 +2249,7 @@ async function driveUploadBinary(name, buf){
   const headers = { Authorization: "Bearer " + driveAccessToken };
   const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
     method: "POST", headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ name, mimeType: "model/stl" })
+    body: JSON.stringify(await driveMeta(name, "model/stl"))
   });
   if(!createRes.ok) throw new Error("create failed");
   const created = await createRes.json();
@@ -2751,7 +2904,7 @@ async function driveUploadText(name, text, mime){
   const headers = { Authorization: "Bearer " + driveAccessToken };
   const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
     method: "POST", headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ name, mimeType: mime })
+    body: JSON.stringify(await driveMeta(name, mime))
   });
   if(!createRes.ok) throw new Error("create failed");
   const created = await createRes.json();
@@ -3555,7 +3708,7 @@ let docPick = null;         // last board clicked inside the wiring document
 async function driveUploadAny(name, buf, mime){
   const headers = { Authorization: "Bearer " + driveAccessToken };
   const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
-    method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ name, mimeType: mime })
+    method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(await driveMeta(name, mime))
   });
   if(!createRes.ok) throw new Error("create failed");
   const created = await createRes.json();
